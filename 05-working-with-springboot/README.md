@@ -250,7 +250,7 @@ Once you have unzipped the project, you’ll have a very simple structure.
 
 Import the project as a Maven Project into your favourite IDE for further development. 
 
-## Implement a Kafka Consumer in Spring
+### Implement a Kafka Consumer in Spring
 
 Start by creating a simple Java class `KafkaEventConsumer` within the `com.trivadis.kafkaws.springbootkafkaconusmer` package, which we will use to consume messages from Kafka. 
 
