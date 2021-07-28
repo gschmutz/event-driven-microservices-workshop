@@ -1,0 +1,29 @@
+{
+  "type": "record",
+  "name": "Notification",
+  "namespace": "com.trivadis.kafkaws.avro.v1",
+  "fields": [
+    {
+      "name": "id",
+      "type": [
+        "long",
+        "null"
+      ]
+    },
+    {
+      "name": "subject",
+      "type": [
+        "string",
+        "null"
+      ], "default":""
+    },
+    {
+      "name": "message",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  ],
+  "description": "A simple Notification Event message"
+}
