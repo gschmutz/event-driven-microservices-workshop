@@ -1,4 +1,4 @@
-package com.trivadis.kafkaws.springbootkafkaconusmer;
+package com.trivadis.kafkaws.springbootkafkaconsumer;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
