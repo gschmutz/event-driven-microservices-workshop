@@ -23,13 +23,13 @@ Now for Elasticsearch to run properly, we have to increase the `vm.max_map_count
 sudo sysctl -w vm.max_map_count=262144   
 ```
 
-Now let's checkout the NoSQL Workshop project from GitHub:
+Now let's checkout the Event-Driven Microservices Workshop project from GitHub:
 
 ```
 # Get the project
-cd /home/bigdata
-git clone https://github.com/gschmutz/kafka-workshop.git
-cd kafka-workshop/01-environment/docker
+cd 
+git clone https://github.com/gschmutz/event-driven-micorservices-workshop.git
+cd kevent-driven-micorservices-workshop/01-environment/docker
 ```
 
 ## Start Environment
