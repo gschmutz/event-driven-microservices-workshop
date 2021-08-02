@@ -18,7 +18,7 @@ Keep **Linux/Unix** for the **Select a platform** and click on **OS Only** and s
 Scroll down to **Launch script** and add the following script 
 
 ```
-export GITHUB_PROJECT=kafka-workshop
+export GITHUB_PROJECT=event-driven-microservices-workshop
 export GITHUB_OWNER=gschmutz
 export DATAPLATFORM_HOME=01-environment/docker
 export DOCKER_COMPOSE_VERSION=1.25.3
@@ -140,9 +140,6 @@ Click on **Stop** to confirm stopping the instance.
 
 A stopped instance will still incur charges, you have to delete the instance completely to stop charges. 
 
-## Delete an Instance
-
-t.b.d.
 
 ## Create a snapshot of an Instance
 
