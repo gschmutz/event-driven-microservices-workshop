@@ -28,8 +28,8 @@ Now let's checkout the Event-Driven Microservices Workshop project from GitHub:
 ```
 # Get the project
 cd 
-git clone https://github.com/gschmutz/event-driven-micorservices-workshop.git
-cd kevent-driven-micorservices-workshop/01-environment/docker
+git clone https://github.com/gschmutz/event-driven-microservices-workshop.git
+cd event-driven-microservices-workshop/01-environment/docker/
 ```
 
 ## Start Environment

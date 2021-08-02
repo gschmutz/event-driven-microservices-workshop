@@ -30,8 +30,8 @@ Navigate to your local folder, where you want to keep the workshop and execute t
 
 ```
 # Get the project
-git clone https://github.com/gschmutz/kafka-workshop.git
-cd kafka-workshop/01-environment/docker
+git clone https://github.com/gschmutz/event-driven-microservices-workshop.git
+cd event-driven-microservices-workshop/01-environment/docker/
 ```
 
 ## Start Environment
