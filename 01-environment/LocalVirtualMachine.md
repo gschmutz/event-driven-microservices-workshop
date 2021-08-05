@@ -8,7 +8,7 @@ Currently the VM is configured to use 14 GB of Memory. If you have less than 16 
 
 In the Virtual Machine, start a terminal window and execute the following commands. 
 
-First let's add the environment variables. Make sure to adapt the network interface (**ens33** according to your environment. You can retrieve the interface name by using **ipconfig** on windows or **ifconfig* on Mac/Linux. 
+First let's add the environment variables. Make sure to adapt the network interface (**ens33** according to your environment. You can retrieve the interface name by using **ipconfig** on windows or **ifconfig** / **ip addr** on Mac/Linux. 
 
 ```
 # Prepare Environment Variables
