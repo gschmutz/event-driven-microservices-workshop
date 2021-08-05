@@ -4,6 +4,52 @@ Open and start the virtual machine either by using **VMWare Workstation** on Win
 
 Currently the VM is configured to use 14 GB of Memory. If you have less than 16 GB in total available on your system, make sure to reduce it before starting the virtual machine. 
 
+```bash
+export GITHUB_PROJECT=event-driven-microservices-workshop
+export GITHUB_OWNER=gschmutz
+export DATAPLATFORM_HOME=01-environment/docker
+export DOCKER_COMPOSE_VERSION=1.29.2
+export PLATYS_VERSION=2.4.0
+export NETWORK_NAME=eth0
+export USERNAME=<to-be-defined>
+```
+
+```bash
+# Install Docker
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable edge"
+sudo apt-get install -y docker-ce
+sudo usermod -aG docker $USERNAME
+```
+
+```bash
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+```
+
+
+```bash
+# Install Platys
+sudo curl -L "https://github.com/TrivadisPF/platys/releases/download/${PLATYS_VERSION}/platys_${PLATYS_VERSION}_linux_x86_64.tar.gz" -o /tmp/platys.tar.gz
+tar zvxf /tmp/platys.tar.gz 
+sudo mv platys /usr/local/bin/
+sudo chown root:root /usr/local/bin/platys
+sudo rm README.md 
+```
+
+```bash
+# Install various Utilities
+sudo apt-get install -y curl jq kafkacat
+```
+
+
+```bash
+# Install various Utilities
+sudo apt-get install -y curl jq kafkacat
+```
+
 ## Prepare Environment
 
 In the Virtual Machine, start a terminal window and execute the following commands. 

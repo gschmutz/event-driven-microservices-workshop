@@ -2,11 +2,7 @@
 
 In this workshop we will learn how to produce and consume messages using the [Kafka Java API](https://kafka.apache.org/documentation/#api).
 
-## Create the project in Eclipse IDE
-
-Start the Eclipse IDE if not yet done. 
-
-### Create the project and the project definition (pom.xml)
+## Create the project in your Java IDE
 
 Create a new [Maven project](../99-misc/97-working-with-eclipse/README.md) and in the last step use `com.trivadis.kafkaws` for the **Group Id** and `java-kafka` for the **Artifact Id**.
 
@@ -89,15 +85,7 @@ Copy the following block right after the <version> tag, before the closing </pro
 	</build>
 ```
 
-In a terminal window, perform the following command to update the Eclipse IDE project settings. 
-
-```
-mvn eclipse:eclipse
-```
-
-Refresh the project in Eclipse to re-read the project settings.
-
-### Create log4j settings
+## Create log4j settings
 
 Let's also create the necessary log4j configuration. 
 
@@ -144,7 +132,7 @@ log4j.appender.out.layout.ConversionPattern=[%30.30t] %-30.30c{1} %-5p %m%n
 
 log4j.throwableRenderer=org.apache.log4j.EnhancedThrowableRenderer
 ```
-### Creating the necessary Kafka Topic 
+## Creating the necessary Kafka Topic 
 
 We will use the topic `test-java-topic` in the Producer and Consumer code below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
 

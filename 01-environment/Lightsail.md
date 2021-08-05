@@ -21,7 +21,7 @@ Scroll down to **Launch script** and add the following script
 export GITHUB_PROJECT=event-driven-microservices-workshop
 export GITHUB_OWNER=gschmutz
 export DATAPLATFORM_HOME=01-environment/docker
-export DOCKER_COMPOSE_VERSION=1.25.3
+export DOCKER_COMPOSE_VERSION=1.29.2
 export PLATYS_VERSION=2.4.0
 export NETWORK_NAME=eth0
 export USERNAME=ubuntu
@@ -55,7 +55,7 @@ sudo curl -L "https://github.com/TrivadisPF/platys/releases/download/${PLATYS_VE
 tar zvxf /tmp/platys.tar.gz 
 sudo mv platys /usr/local/bin/
 sudo chown root:root /usr/local/bin/platys
-sudo rm platys.tar.gz 
+sudo rm README.md
 
 # Install various Utilities
 sudo apt-get install -y curl jq kafkacat
