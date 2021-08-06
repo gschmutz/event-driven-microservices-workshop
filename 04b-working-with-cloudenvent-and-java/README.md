@@ -481,7 +481,7 @@ If you want a producer to use the `partitionkey` extension, you can use the `Par
 
 ```java
         // add Interceptor for the partitionKey extension
-        // props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, io.cloudevents.kafka.PartitionKeyExtensionInterceptor.class.getName());
+        props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, io.cloudevents.kafka.PartitionKeyExtensionInterceptor.class.getName());
 ```
 
 When using in your producer, this interceptor will pick the `partitionkey` extension from the event and will set it as record key, regardless of the input record key. 
