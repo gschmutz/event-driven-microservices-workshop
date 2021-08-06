@@ -58,6 +58,15 @@
                             <mainClass>com.trivadis.kafkaws.producer.KafkaProducerCloudEvents</mainClass>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>consumer</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.trivadis.kafkaws.consumer.KafkaConsumerCloudEvents</mainClass>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

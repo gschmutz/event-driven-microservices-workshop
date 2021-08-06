@@ -68,7 +68,7 @@ Copy the following block right after the <version> tag, before the closing </pro
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.6.0</version>
+				<version>3.0.0</version>
 				<executions>
 					<execution>
 						<id>producer</id>
@@ -85,53 +85,6 @@ Copy the following block right after the <version> tag, before the closing </pro
 	</build>
 ```
 
-## Create log4j settings
-
-Let's also create the necessary log4j configuration. 
-
-In the code we are using the [Log4J Logging Framework](https://logging.apache.org/log4j/2.x/), which we have to configure using a property file. 
-
-Create a new file `log4j.properties` in the folder **src/main/resources** and add the following configuration properties. 
-
-```
-## ------------------------------------------------------------------------
-## Licensed to the Apache Software Foundation (ASF) under one or more
-## contributor license agreements.  See the NOTICE file distributed with
-## this work for additional information regarding copyright ownership.
-## The ASF licenses this file to You under the Apache License, Version 2.0
-## (the "License"); you may not use this file except in compliance with
-## the License.  You may obtain a copy of the License at
-##
-## http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-## ------------------------------------------------------------------------
-
-#
-# The logging properties used for eclipse testing, We want to see INFO output on the console.
-#
-log4j.rootLogger=INFO, out
-
-#log4j.logger.org.apache.kafka=INFO
-
-log4j.logger.org.apache.camel.impl.converter=INFO
-log4j.logger.org.apache.camel.util.ResolverUtil=INFO
-
-log4j.logger.org.springframework=WARN
-log4j.logger.org.hibernate=WARN
-
-# CONSOLE appender not used by default
-log4j.appender.out=org.apache.log4j.ConsoleAppender
-log4j.appender.out.layout=org.apache.log4j.PatternLayout
-log4j.appender.out.layout.ConversionPattern=[%30.30t] %-30.30c{1} %-5p %m%n
-#log4j.appender.out.layout.ConversionPattern=%d [%-15.15t] %-5p %-30.30c{1} - %m%n
-
-log4j.throwableRenderer=org.apache.log4j.EnhancedThrowableRenderer
-```
 ## Creating the necessary Kafka Topic 
 
 We will use the topic `test-java-topic` in the Producer and Consumer code below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
@@ -556,6 +509,8 @@ Before we can run it, add the consumer to the `<executions>` section in the `pom
 Now run it using the `mvn exec:java` command.
 
 ```
+mvn clean package -Dmaven.test.skip=true
+
 mvn exec:java@consumer -Dexec.args="0"
 ```
 

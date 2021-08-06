@@ -1,14 +1,12 @@
-package com.trivadis.kafkaws;
+package com.trivadis.kafkaws.consumer;
 
 import io.cloudevents.CloudEvent;
 import io.cloudevents.kafka.CloudEventDeserializer;
-import io.cloudevents.kafka.CloudEventSerializer;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.LongDeserializer;
-import org.apache.kafka.common.serialization.LongSerializer;
 
 import java.util.Collections;
 import java.util.Properties;
