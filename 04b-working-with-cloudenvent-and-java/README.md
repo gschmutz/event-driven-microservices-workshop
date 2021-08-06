@@ -64,7 +64,7 @@ Copy the following block right after the `<version>` tag, before the closing `</
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>producer</id>
