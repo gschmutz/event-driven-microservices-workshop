@@ -1,10 +1,12 @@
 package com.trivadis.kafkaws.producer;
 
 import io.cloudevents.CloudEvent;
+import io.cloudevents.CloudEventExtension;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import io.cloudevents.core.message.Encoding;
 import io.cloudevents.jackson.JsonFormat;
 import io.cloudevents.kafka.CloudEventSerializer;
+import io.cloudevents.kafka.PartitionKeyExtensionInterceptor;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.LongSerializer;
 
@@ -28,8 +30,11 @@ public class KafkaProducerCloudEvents {
 
         // Configure the CloudEventSerializer to emit events as json structured events
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CloudEventSerializer.class);
-        props.put(CloudEventSerializer.ENCODING_CONFIG, Encoding.BINARY);
-        //props.put(CloudEventSerializer.EVENT_FORMAT_CONFIG, JsonFormat.CONTENT_TYPE);
+        props.put(CloudEventSerializer.ENCODING_CONFIG, Encoding.STRUCTURED);
+        props.put(CloudEventSerializer.EVENT_FORMAT_CONFIG, JsonFormat.CONTENT_TYPE);
+
+        // add Interceptor for the partitionKey extension
+        //props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, io.cloudevents.kafka.PartitionKeyExtensionInterceptor.class.getName());
 
         return new KafkaProducer<>(props);
     }
@@ -52,9 +57,10 @@ public class KafkaProducerCloudEvents {
                 CloudEvent event = eventTemplate.newBuilder()
                         .withId(UUID.randomUUID().toString())
                         .withData("text/plain", data.getBytes())
+                        // .withExtension(PartitionKeyExtensionInterceptor.PARTITION_KEY_EXTENSION, 5L)
                         .build();
 
-                ProducerRecord<Long, CloudEvent> record = new ProducerRecord<>(TOPIC, id, event);
+                ProducerRecord<Long, CloudEvent> record = new ProducerRecord<>(TOPIC, event);
                 RecordMetadata metadata = producer.send(record).get();
 
                 long elapsedTime = System.currentTimeMillis() - time;

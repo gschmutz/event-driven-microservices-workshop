@@ -81,54 +81,7 @@ Copy the following block right after the `<version>` tag, before the closing `</
     </build>    
 ```
 
-## Create log4j settings
-
-Let's also create the necessary log4j configuration. 
-
-In the code we are using the [Log4J Logging Framework](https://logging.apache.org/log4j/2.x/), which we have to configure using a property file. 
-
-Create a new file `log4j.properties` in the folder **src/main/resources** and add the following configuration properties. 
-
-```
-## ------------------------------------------------------------------------
-## Licensed to the Apache Software Foundation (ASF) under one or more
-## contributor license agreements.  See the NOTICE file distributed with
-## this work for additional information regarding copyright ownership.
-## The ASF licenses this file to You under the Apache License, Version 2.0
-## (the "License"); you may not use this file except in compliance with
-## the License.  You may obtain a copy of the License at
-##
-## http://www.apache.org/licenses/LICENSE-2.0
-##
-## Unless required by applicable law or agreed to in writing, software
-## distributed under the License is distributed on an "AS IS" BASIS,
-## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-## See the License for the specific language governing permissions and
-## limitations under the License.
-## ------------------------------------------------------------------------
-
-#
-# The logging properties used for eclipse testing, We want to see INFO output on the console.
-#
-log4j.rootLogger=INFO, out
-
-#log4j.logger.org.apache.kafka=INFO
-
-log4j.logger.org.apache.camel.impl.converter=INFO
-log4j.logger.org.apache.camel.util.ResolverUtil=INFO
-
-log4j.logger.org.springframework=WARN
-log4j.logger.org.hibernate=WARN
-
-# CONSOLE appender not used by default
-log4j.appender.out=org.apache.log4j.ConsoleAppender
-log4j.appender.out.layout=org.apache.log4j.PatternLayout
-log4j.appender.out.layout.ConversionPattern=[%30.30t] %-30.30c{1} %-5p %m%n
-#log4j.appender.out.layout.ConversionPattern=%d [%-15.15t] %-5p %-30.30c{1} - %m%n
-
-log4j.throwableRenderer=org.apache.log4j.EnhancedThrowableRenderer
-```
-### Creating the necessary Kafka Topic 
+## Creating the necessary Kafka Topic 
 
 We will use the topic `test-java-ce-topic` in the Producer and Consumer code below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
 
@@ -146,12 +99,6 @@ kafka-topics --create \
 --partitions 8 \
 --topic test-java-ce-topic \
 --zookeeper zookeeper-1:2181
-```
-
-Cross check that the topic has been created.
-
-```
-kafka-topics --list --zookeeper zookeeper-1:2181
 ```
 
 This finishes the setup steps and our new project is ready to be used. Next we will start implementing the **Kafka Producer** which uses CloudEvents for the serialization. 
@@ -248,7 +195,7 @@ We will be using the synchronous way for producing messages to the Kafka topic w
 
 Next you define the main method.
     
-```
+```java
     public static void main(String... args) throws Exception {
         if (args.length == 0) {
             runProducer(100,10,0);
@@ -262,14 +209,78 @@ The `main()` method accepts 3 parameters, the number of messages to produce, the
 
 Use `kafkacat` or `kafka-console-consumer` to consume the messages from the topic `test-java-ce-topic `.
 
-```
-kafkacat -b $PUBLIC_IP -t test-java-ce-topic
+```bash
+kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic
 ```
 
-Now run it using the `mvn exec:java` command. It will generate 1000 messages, waiting 10ms in-between sending each message and use 0 for the ID. 
+Now run it using the `mvn exec:java` command. It will generate 100 messages, waiting 100ms in-between sending each message and use 0 for the ID. 
 
+```bash
+mvn exec:java@producer -Dexec.args="100 100 0"
 ```
-mvn exec:java@producer -Dexec.args="1000 100 0"
+
+from `kafkacat` you should see an output similar to the one below
+
+```bash
+$ kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic
+% Auto-selecting Consumer mode (use -P or -C to override)
+% Reached end of topic test-java-ce-topic [0] at offset 0
+% Reached end of topic test-java-ce-topic [6] at offset 0
+% Reached end of topic test-java-ce-topic [1] at offset 0
+% Reached end of topic test-java-ce-topic [4] at offset 0
+% Reached end of topic test-java-ce-topic [7] at offset 0
+% Reached end of topic test-java-ce-topic [2] at offset 0
+% Reached end of topic test-java-ce-topic [5] at offset 0
+{"specversion":"1.0","id":"11dfa767-7fcd-414e-a088-7554afe8b56b","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgMA=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7902
+{"specversion":"1.0","id":"e9765637-9bb6-4eb2-850c-95d02e4d226c","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgMQ=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7903
+{"specversion":"1.0","id":"2f2652ef-e481-46cd-9e9a-b1957fda48c6","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgMg=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7904
+{"specversion":"1.0","id":"6e239b0e-5dd4-468d-aa89-6272872a18a8","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgMw=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7905
+{"specversion":"1.0","id":"573c3005-235f-4bbd-8d6e-3f952ad55ab8","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgNA=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7906
+{"specversion":"1.0","id":"899543a1-4c52-4bd5-9d2d-5925c073cc60","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgNQ=="}
+% Reached end of topic test-java-ce-topic [3] at offset 7907
+{"specversion":"1.0","id":"e12098c6-6470-4d05-9141-c68132f5e5c0","source":"https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka","type":"producer.example","datacontenttype":"text/plain","data_base64":"TWVzc2FnZSBudW1iZXIgNg=="}
+...
+```
+
+As we can see, the messages are formatted as JSON. You can even make it more visible by piping the output of `kafkacat` to `jq`
+
+```bash
+kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic -q -u | jq
+```
+
+Now we can see the CloudEvents messages formatted in a more visible way
+
+```bash
+docker@ubuntu:~$ kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic -q -u | jq
+{
+  "specversion": "1.0",
+  "id": "8892a8a5-1ab7-44b6-aee7-30913cf7dd24",
+  "source": "https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka",
+  "type": "producer.example",
+  "datacontenttype": "text/plain",
+  "data_base64": "TWVzc2FnZSBudW1iZXIgMA=="
+}
+{
+  "specversion": "1.0",
+  "id": "7dffd066-5a28-4949-b9dc-923f367057c2",
+  "source": "https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka",
+  "type": "producer.example",
+  "datacontenttype": "text/plain",
+  "data_base64": "TWVzc2FnZSBudW1iZXIgMQ=="
+}
+{
+  "specversion": "1.0",
+  "id": "016cae8e-91b3-44ca-bb85-63f4d4059e4e",
+  "source": "https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka",
+  "type": "producer.example",
+  "datacontenttype": "text/plain",
+  "data_base64": "TWVzc2FnZSBudW1iZXIgMg=="
+}
 ```
 
 ## Create a Kafka Consumer using CloudEvents for serialization
@@ -366,12 +377,120 @@ public class consumer {
 
 ## Change the Producer to use Encoding.BINARY
 
-In the producer, change the `ENCODING_CONFIG` to `BINARY`
+In the binary content mode, the value of the event data is be placed into the Kafka message's value section as-is, with the content-type header value declaring its media type; all other event attributes aremapped to the Kafka message's header section.
 
-```
+In the producer, change the `ENCODING_CONFIG` to `Encoding.BINARY` and comment the `EVENT_FORMAT_CONFIG` as it is of no value in that case
+
+```java
         // Configure the CloudEventSerializer to emit events with Encoding.BINARY
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CloudEventSerializer.class);
         props.put(CloudEventSerializer.ENCODING_CONFIG, Encoding.BINARY);
         //props.put(CloudEventSerializer.EVENT_FORMAT_CONFIG, JsonFormat.CONTENT_TYPE);
 ```
 	
+Restart the producer 	
+	
+```bash
+mvn clean package -Dmaven.test.skip=true
+mvn exec:java@producer -Dexec.args="100 100 0"
+```	
+
+while running `kafkacat` with default settings
+
+```bash
+kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic
+```
+
+With only the value shown, we no longer see all the attributes of the CloudEvent but only the `data` portion of the CloudEvent
+
+```bash
+$ kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic
+[0] Hello Kafka 1 => 2021-08-06T13:24:07.379838
+[0] Hello Kafka 16 => 2021-08-06T13:24:09.066303
+[0] Hello Kafka 22 => 2021-08-06T13:24:09.728372
+[0] Hello Kafka 25 => 2021-08-06T13:24:10.069345
+[0] Hello Kafka 34 => 2021-08-06T13:24:11.044915
+[0] Hello Kafka 38 => 2021-08-06T13:24:11.481955
+[0] Hello Kafka 43 => 2021-08-06T13:24:12.028414
+[0] Hello Kafka 67 => 2021-08-06T13:24:14.645988
+[0] Hello Kafka 71 => 2021-08-06T13:24:15.078429
+[0] Hello Kafka 76 => 2021-08-06T13:24:15.617898
+```
+
+Let's adapt `kafkacat` to also show the Kafka headers:
+
+```
+kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic -f '%k - %s - %h\n' 
+```	
+	
+Now you will get more information	
+	
+```bash
+$ kafkacat -b $DATAPLATFORM_IP -t test-java-ce-topic -f '%k - %s - %h\n'
+% Auto-selecting Consumer mode (use -P or -C to override)
+% Reached end of topic test-java-ce-topic [0] at offset 24
+% Reached end of topic test-java-ce-topic [2] at offset 25
+% Reached end of topic test-java-ce-topic [1] at offset 25
+% Reached end of topic test-java-ce-topic [4] at offset 963
+% Reached end of topic test-java-ce-topic [7] at offset 227
+% Reached end of topic test-java-ce-topic [5] at offset 22
+% Reached end of topic test-java-ce-topic [3] at offset 8150
+% Reached end of topic test-java-ce-topic [6] at offset 31
+ - [0] Hello Kafka 0 => 2021-08-06T13:43:18.031782 - ce_specversion=1.0,ce_id=ad6f5812-fb2f-4909-9d34-c05817246ebd,ce_source=https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka,ce_type=producer.example,content-type=text/plain
+% Reached end of topic test-java-ce-topic [1] at offset 28
+ - [0] Hello Kafka 1 => 2021-08-06T13:43:18.493542 - ce_specversion=1.0,ce_id=85643982-36da-4be0-a579-fb54d9fd0702,ce_source=https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka,ce_type=producer.example,content-type=text/plain
+% Reached end of topic test-java-ce-topic [4] at offset 965
+ - [0] Hello Kafka 2 => 2021-08-06T13:43:18.601782 - ce_specversion=1.0,ce_id=5812d7f5-1351-41d9-b37d-b2b5b65fede6,ce_source=https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka,ce_type=producer.example,content-type=text/plain
+% Reached end of topic test-java-ce-topic [5] at offset 26
+ - [0] Hello Kafka 3 => 2021-08-06T13:43:18.717177 - ce_specversion=1.0,ce_id=f36e5f65-9149-44f8-ad82-f3ce9dedec8f,ce_source=https://github.com/gschmutz/event-driven-microservices-workshop/examples/kafka,ce_type=producer.example,content-type=text/plain
+```
+
+If we view the message in AKHQ (<http://dataplatform:28107/ui/docker-kafka-server/topic/test-java-ce-topic/data?sort=NEWEST&partition=All>) then we can see the headers very nicely:
+
+![](./images/akhq-cloud-event.png)
+
+Double click on the number 5 shown in the Headers column to show the hewaders.
+
+
+## Producing CloudEvents so that a Kafka Key is published
+
+So far we are producing a key as a separte information when creating the `ProducerRecord`
+
+```
+ProducerRecord<Long, CloudEvent> record = new ProducerRecord<>(TOPIC, id, event);
+```
+
+CloudEvents specification defines a [Partitioning](https://github.com/cloudevents/spec/blob/v1.0.1/extensions/partitioning.md) extension, which can be used to pass the information for the partitioning as part of the CloudEvent.
+
+This can be used in Kafka for the key when producing records.
+
+For that you first have to add the `partitionkey` attribute to the CloudEvent
+
+```java
+                // Create the event starting from the template
+                CloudEvent event = eventTemplate.newBuilder()
+                        .withId(UUID.randomUUID().toString())
+                        .withData("text/plain", data.getBytes())
+                        .withExtension(PartitionKeyExtensionInterceptor.PARTITION_KEY_EXTENSION, 5L)
+                        .build();
+```
+
+We hard-code the value of the `partitionkey` to `5` (as Long), so that we can see the overwrite in action. In real-life this would be of course a variable value.
+
+If you want a producer to use the `partitionkey` extension, you can use the `PartitionKeyExtensionInterceptor`.
+
+```java
+        // add Interceptor for the partitionKey extension
+        // props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, io.cloudevents.kafka.PartitionKeyExtensionInterceptor.class.getName());
+```
+
+When using in your producer, this interceptor will pick the `partitionkey` extension from the event and will set it as record key, regardless of the input record key. 
+
+Check out the [PartitionKeyExtensionInterceptor](https://github.com/cloudevents/sdk-java/tree/master/kafka/src/main/java/io/cloudevents/kafka/PartitionKeyExtensionInterceptor.java) javadoc for more info.
+
+If you run the producer without a key
+
+```bash
+mvn clean package -Dmaven.test.skip=true
+mvn exec:java@producer -Dexec.args="100 100 0"
+```

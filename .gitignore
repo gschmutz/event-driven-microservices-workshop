@@ -14,10 +14,11 @@
 04b-working-with-cloudenvent-and-java/.DS_Store
 04b-working-with-cloudenvent-and-java/images/.DS_Store
 04b-working-with-cloudenvent-and-java/src/.DS_Store
-.DS_Store
+**/.DS_Store
+**/.idea/**
 .DS_Store
 04b-working-with-cloudenvent-and-java/src/.idea/codeStyles/codeStyleConfig.xml
 04b-working-with-cloudenvent-and-java/src/.idea/codeStyles/Project.xml
 04b-working-with-cloudenvent-and-java/src/.idea/modules.xml
-04b-working-with-cloudenvent-and-java/src/.idea/src.iml
 04b-working-with-cloudenvent-and-java/src/.idea/vcs.xml
+04b-working-with-cloudenvent-and-java/.idea/codeStyles/codeStyleConfig.xml
