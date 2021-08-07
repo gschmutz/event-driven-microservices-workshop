@@ -1,4 +1,4 @@
-# Testing Kafka Scalability and Failover
+# Testing Consumer Scalability and Kafka Failover
 
 In this tutorial, we will demonstrate consumer failover and broker failover. We also demonstrate load balancing Kafka consumers. We show how, with many groups, Kafka acts like a Publish/Subscribe. But, when we put all of our consumers in the same group, Kafka will load share the messages to the consumers in the same group (more like a queue than a topic in a traditional MOM sense).
 
