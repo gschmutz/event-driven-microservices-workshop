@@ -1,16 +1,12 @@
 # Getting started with Apache Kafka
 
-## Introduction
-
 In this workshop we will learn the basics of working with Apache Kafka. Make sure that you have created the environment as described in [Preparing the Environment](../01-environment/01-environment.md).
 
 The main units of interest in Kafka are topics and messages. A topic is simply what you publish a message to, topics are a stream of messages.
 
 In this workshop you will learn how to create topics, how to produce messages, how to consume messages and how to describe/view metadata in Apache Kafka. 
     
-## Working with built-in Command Line Utilities 
-
-### Connect to a Kafka Broker 
+## Connecting to Kafka broker to use command line utilities 
 
 The environment contains of a Kafka cluster with 3 brokers, all running on the Docker host of course. So it's of course not meant to really fault-tolerant but to demonstrate how to work with a Kafka cluster. 
 
@@ -25,7 +21,9 @@ Open a terminal window on the Docker Host and run a `docker exec` command to sta
 docker exec -ti kafka-1 bash
 ```
 
-if we just execute the `kafka-topics` command without any options, a help page is shown
+## Create, Delete, Describe or Change Kafka Topics 
+
+To create, delete, describe and change Kafka topics over the command line, use the `kafka-topics` command. If you run it without any options, a help page is shown
 
 ```bash
 root@kafka-1:/# kafka-topics
@@ -143,7 +141,7 @@ Option                                   Description
 
 First, let's list the topics available on a given Kafka Cluster. For that we use the `kafka-topics` utility with the `--list` option. 
 
-```
+```bash
 kafka-topics --list --zookeeper zookeeper-1:2181
 ```
 
@@ -182,7 +180,15 @@ Topic:test-topic	PartitionCount:6	ReplicationFactor:2	Configs:
 	Topic: test-topic	Partition: 5	Leader: 2	Replicas: 2,3	Isr: 2,3
 ```
 
-### Produce and Consume to Kafka topic with command line utility
+### Deleteing a Kafka topic
+
+A Kafka topic can be dropped using the `kafka-topics` utility with the `--delete` option (don't do that know, we need the topic in the next section).
+
+```bash
+kafka-topics --zookeeper zookeeper-1:2181 --delete --topic test-topic
+```
+
+## Produce and Consume to Kafka topic with command line utility
 
 Now let's see the topic in use. The most basic way to test it is through the command line. Kafka comes with two handy utilities `kafka-console-consumer` and `kafka-console-producer` to consume and produce messages through the command line. 
 
@@ -285,13 +291,6 @@ kafka-console-producer --broker-list kafka-1:19092,kafka-2:19093 \
 
 Enter your messages so that a key and messages are separated by a comma, i.e. `key1,value1`.  Do that for a few messages and check that they are shown in the console consumers as key and value. 
 
-### Dropping a Kafka topic
-
-A Kafka topic can be dropped using the `kafka-topics` utility with the `--delete` option. 
-
-```bash
-kafka-topics --zookeeper zookeeper-1:2181 --delete --topic test-topic
-```
 
 ## Working with the Kafkacat utility
 
@@ -308,7 +307,7 @@ You can run **Kafkacat** as a standalone utility on any **Linux** or **Mac** com
 Officially **Kafkacat** is either supported on **Linux** or **Mac OS-X**. There is no official support for **Windows** yet. There is a Docker image for Kafkacat from Confluent as well.
 We will show how to install it on **Ubunut** and **Mac OS-X**. 
 
-In all the workshops we will assume that **Kafkacat** is installed locally on the Docker Host and that `streamingplatform` alias has been added to `/etc/hosts`. 
+In all the workshops we will assume that **Kafkacat** is installed locally on the Docker Host and that `dataplatform` alias has been added to `/etc/hosts`. 
 
 #### Ubuntu
 
@@ -342,6 +341,12 @@ To install **Kafkacat** on a Macbook, just run the following command:
 brew install kafkacat
 ```
 
+#### Windows
+
+There is no official support to run Kafkacat on Windows. You might try the following link to run it on Windows: <https://ci.appveyor.com/project/edenhill/kafkacat/builds/23675338/artifacts>.
+
+An other option for Windows is to run it as a Docker container as shown below. 
+
 #### Docker Container
 
 There is also a Docker container from Confluent which can be used to run **Kafkacat**
@@ -350,17 +355,17 @@ There is also a Docker container from Confluent which can be used to run **Kafka
 docker run --tty --network kafkaworkshop_default edenhill/kafkacat:1.5.0 kafkacat
 ```
 
+If it is part of the Data Platform, then it can be executed "directly"
+
+```bash
+docker exec -ti kafkacat kafkacat
+```
+
 Check the [Docker Image description on Docker Hub](https://hub.docker.com/r/confluentinc/cp-kafkacat) to see more options for using **Kafkacat** with Docker. 
-
-#### Windows
-
-There is no official support to run Kafkacat on Windows. You might try the following link to run it on Windows: <https://ci.appveyor.com/project/edenhill/kafkacat/builds/23675338/artifacts>.
-
-An other option for Windows is to run it as a Docker container as shown above. 
 
 ### Display Kafkacat options
 
-**kafkacat** has many options. If you just enter `kafkacat` without any options, all the options with a short description is shown on the console. Additionally Kafkacat will show the version which is installed. This is current **1.5.0** if installed on Mac and **1.3.1** if on Ubuntu. **1.4.0** is interesting, because support for Kafka Headers has been added and with **1.5.0** there is also support for consuming Avro messages.
+**kafkacat** has many options. If you just enter `kafkacat` without any options, all the options with a short description is shown on the console. 
 
 ```bash
 gus@gusmacbook ~> kafkacat
@@ -370,7 +375,7 @@ Usage: kafkacat <options> [file1 file2 .. | topic1 topic2 ..]]
 kafkacat - Apache Kafka producer and consumer tool
 https://github.com/edenhill/kafkacat
 Copyright (c) 2014-2019, Magnus Edenhill
-Version 1.5.0 (JSON, librdkafka 1.2.0 builtin.features=gzip,snappy,ssl,sasl,regex,lz4,sasl_gssapi,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer)
+Version 1.6.0 (JSON, Avro, Transactions, librdkafka 1.5.0 builtin.features=gzip,snappy,ssl,sasl,regex,lz4,sasl_gssapi,sasl_plain,sasl_scram,plugins,zstd,sasl_oauthbearer)
 
 
 General options:
@@ -386,6 +391,13 @@ General options:
   -E                 Do not exit on non fatal error
   -K <delim>         Key delimiter (same format as -D)
   -c <cnt>           Limit message count
+  -m <seconds>       Metadata (et.al.) request timeout.
+                     This limits how long kafkacat will block
+                     while waiting for initial metadata to be
+                     retrieved from the Kafka cluster.
+                     It also sets the timeout for the producer's
+                     transaction commits, init, aborts, etc.
+                     Default: 5 seconds.
   -F <config-file>   Read configuration properties from file,
                      file format is "property=value".
                      The KAFKACAT_CONFIG=path environment can also be used, but -F takes preceedence.
@@ -394,9 +406,10 @@ General options:
   -X prop=val        Set librdkafka configuration property.
                      Properties prefixed with "topic." are
                      applied as topic properties.
+  -X schema.registry.prop=val Set libserdes configuration property for the Avro/Schema-Registry client.
   -X dump            Dump configuration and exit.
   -d <dbg1,...>      Enable librdkafka debugging:
-                     all,generic,broker,topic,metadata,feature,queue,msg,protocol,cgrp,security,fetch,interceptor,plugin,consumer,admin,eos
+                     all,generic,broker,topic,metadata,feature,queue,msg,protocol,cgrp,security,fetch,interceptor,plugin,consumer,admin,eos,mock
   -q                 Be quiet (verbosity set to 0)
   -v                 Increase verbosity
   -V                 Print version
@@ -421,6 +434,12 @@ Producer options:
                      With -l, only one file permitted.
                      Otherwise, the entire file contents will
                      be sent as one single message.
+  -X transactional.id=.. Enable transactions and send all
+                     messages in a single transaction which
+                     is committed when stdin is closed or the
+                     input file(s) are fully read.
+                     If kafkacat is terminated through Ctrl-C
+                     (et.al) the transaction will be aborted.
 
 Consumer options:
   -o <offset>        Offset to start consuming from:
@@ -454,12 +473,16 @@ Consumer options:
                                        Not including this token skips any
                                        remaining data after the pack-str is
                                        exhausted.
+                       avro       - Avro-formatted with schema in Schema-Registry (requires -r)
+                     E.g.: -s key=i -s value=avro - key is 32-bit integer, value is Avro.
+                       or: -s avro - both key and value are Avro-serialized
+  -r <url>           Schema registry URL (requires avro deserializer to be used with -s)
   -D <delim>         Delimiter to separate messages on output
   -K <delim>         Print message keys prefixing the message
                      with specified delimiter.
   -O                 Print message offset using -K delimiter
   -c <cnt>           Exit after consuming this number of messages
-  -Z                 Print NULL values and keys as "NULL"instead of empty.
+  -Z                 Print NULL values and keys as "NULL" instead of empty.
                      For JSON (-J) the nullstr is always null.
   -u                 Unbuffered output
 
@@ -495,6 +518,7 @@ Format string tokens:
 JSON message envelope (on one line) when consuming with -J:
  { "topic": str, "partition": int, "offset": int,
    "tstype": "create|logappend|unknown", "ts": int, // timestamp in milliseconds since epoch
+   "broker": int,
    "headers": { "<name>": str, .. }, // optional
    "key": str|json, "payload": str|json,
    "key_error": str, "payload_error": str } //optional
@@ -520,6 +544,10 @@ Query offset by timestamp:
   kafkacat -Q -b broker -t <topic>:<partition>:<timestamp>
 ```
 
+Additionally Kafkacat shows the version which is installed. 
+
+This is currentenly **1.6.0** if installed on Mac and **1.5.0** if installed on Ubuntu over package manager. The differences should be of no problem in the workshops of this course.
+
 Now let's use it to Produce and Consume messages.
 
 ### Consuming messages using Kafkacat
@@ -527,43 +555,43 @@ Now let's use it to Produce and Consume messages.
 The simplest way to consume a topic is just specifying the broker and the topic. By default all messages from the beginning of the topic will be shown 
 
 ```bash
-kafkacat -b streamingplatform -t test-topic
+kafkacat -b dataplatform -t test-topic
 ```
 
 If you want to start at the end of the topic, i.e. only show new messages, add the `-o` option. 
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -o end
+kafkacat -b dataplatform -t test-topic -o end
 ```
 
 To show only the last message (one for each partition), set the `-o` option to `-1`. `-2` would show the last 2 messages.
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -o -1
+kafkacat -b dataplatform -t test-topic -o -1
 ```
 
 To show only the last message from exactly one partition, add the `-p` option
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -p1 -o -1
+kafkacat -b dataplatform -t test-topic -p1 -o -1
 ```
 
 You can use the `-f` option to format the output. Here we show the partition (`%p`) as well as key (`%k`) and value (`%s`):
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -f 'Part-%p => %k:%s\n'
+kafkacat -b dataplatform -t test-topic -f 'Part-%p => %k:%s\n'
 ```
 
 If there are keys which are Null, then you can use `-Z` to actually show NULL in the output:
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -f 'Part-%p => %k:%s\n' -Z
+kafkacat -b dataplatform -t test-topic -f 'Part-%p => %k:%s\n' -Z
 ```
 
 There is also the option `-J` to have the output emitted as JSON.
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -J
+kafkacat -b dataplatform -t test-topic -J
 ```
 
 ### Producing messages using Kafkacat
@@ -571,13 +599,13 @@ kafkacat -b streamingplatform -t test-topic -J
 Producing messages with **Kafkacat** is as easy as consuming. Just add the `-P` option to switch to Producer mode.
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -P
+kafkacat -b dataplatform -t test-topic -P
 ```
 
 To produce with key, specify the delimiter to split key and message, using the `-K` option. 
 
 ```bash
-kafkacat -b streamingplatform -t test-topic -P -K , -X topic.partitioner=murmur2_random
+kafkacat -b dataplatform -t test-topic -P -K , -X topic.partitioner=murmur2_random
 ```
 
 Find some more example on the [Kafkacat GitHub project](https://github.com/edenhill/kafkacat) or in the [Confluent Documentation](https://docs.confluent.io/current/app-development/kafkacat-usage.html).
@@ -590,12 +618,30 @@ Taking his example, you can send 10 orders to test-topic.
 
 ```bash
 curl -s "https://api.mockaroo.com/api/d5a195e0?count=20&key=ff7856d0"| \
-	kafkacat -b streamingplatform -t test-topic -P
+	kafkacat -b dataplatform -t test-topic -P
 ```
+
+## Using AKHQ
+
+[AKHQ](https://akhq.io/) is an open source tool created by Yahoo for managing a Kafka cluster. It has been started as part of the **dataplatform** and can be reached on <http://dataplatform:28107/>. Click on the "Hambruger" icon on the top left corner to expand the menu on the left
+
+![Alt Image Text](./images/akhq-homepage.png "Kafka Manager Homepage")
+
+Naigate to **Topics** on the left side to manage topics
+
+![Alt Image Text](./images/akhq-topics.png "Kafka Manager Homepage")
+
+To create a new topic, click on the **Create Topic** button on the bottom right corner
+
+![Alt Image Text](./images/akhq-create-topic.png "Kafka Manager Add Cluster2")
+
+AKHQ only allows to specify the most important config settings of a topic. If you need to set other configuration properties, you can do that later on the details of a topic via the **Configs** tab.
+
+![Alt Image Text](./images/akhq-alter-topic-configs.png "Kafka Manager Add Cluster2")
 
 ## Using Kafka Manager
 
-[Kafka Manger](https://github.com/yahoo/kafka-manager) is an open source tool created by Yahoo for managing a Kafka cluster. It has been started as part of the **streamingplatform** and can be reached on <http://streamingplatform:28044/>.
+[Kafka Manger](https://github.com/yahoo/kafka-manager) is an open source tool created by Yahoo for managing a Kafka cluster. It has been started as part of the **dataplatform** and can be reached on <http://dataplatform:28104/>.
 
 ![Alt Image Text](./images/kafka-manager-homepage.png "Kafka Manager Homepage")
 
@@ -617,6 +663,15 @@ You should get a message `Done!` signalling that the cluster has been successful
 
 ![Alt Image Text](./images/kafka-manager-cluster-added.png "Kafka Manager Add Cluster2")
 
-Click on **Go to cluster view**. 
+Click on **Go to cluster view** and you see an overview of the cluster
 
+![Alt Image Text](./images/kafka-manager-overview.png "Kafka Manager Add Cluster2")
+
+No click on the `8` next to topics to see a list of all topics (comapred to AQKH shown above, Kafka Manager also shows internal Kafka topics)
+
+![Alt Image Text](./images/kafka-manager-list-topics.png "Kafka Manager Add Cluster2")
+
+To create a new topic in **Kafka Manager**, click on the **Topic** menu on the top and select **Create** and you should see the following dialog window to fill out
+
+![Alt Image Text](./images/kafka-manager-create-topic.png "Kafka Manager Add Cluster2")
 
