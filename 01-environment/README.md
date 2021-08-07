@@ -1,4 +1,4 @@
-# Kafka Data Platform on Docker
+# Data Platform on Docker
 
 The environment for this course is completely based on docker containers. 
 
@@ -8,7 +8,7 @@ For Kafka we will be using the Docker images provided by Confluent and available
 
 You have the following options to start the environment:
 
- * [**Local Virtual Machine Environment**](./LocalVirtualMachine.md) - a Virtual Machine with Docker and Docker Compose pre-installed will be distributed at by the course infrastructure. You will need 50 GB free disk space.
+ * [**(Virtual) machine running Ubuntu Linux**](./UbuntuLinuxMachine.md) - a (Virtual) Machine running with Ubuntu Linux and 50 GB free disk space.
  * [**Local Docker Environment**](./LocalDocker.md) - you have a local Docker and Docker Compose setup in place which you want to use
  * [**AWS Lightsail Environment**](./Lightsail.md) - AWS Lightsail is a service in Amazon Web Services (AWS) with which we can easily startup an environment and provide all the necessary bootstrapping as a script.
 
@@ -26,23 +26,7 @@ To simplify working with the Data Platform and for the links below to work, add 
 
 Replace the IP address by the public IP address of the docker host. 
 
+
 ## Services accessible on Streaming Platform
-The following service are available as part of the platform:
 
-Type | Service | Url
-------|------- | -------------
-Development | StreamSets Data Collector | <http://dataplatform:18630>
-Development | Apache NiFi | <http://dataplatform:18080/nifi>
-Development | Apache Zeppelin | <http://dataplatform:28080>
-Governance | Schema Registry UI  | <http://dataplatform:28102>
-Governance | Schema Registry Rest API  | <http://dataplatform:8081>
-Management | Kafka Connect UI | <http://dataplatform:28103>
-Management | Cluster Manager for Apache Kafka (CMAK)  | <http://dataplatform:28104>
-Management | AKHQ  | <http://dataplatform:28107>
-Management | Zoonavigator  | <http://dataplatform:28107>
-Management | Mino | <http://dataplatform:9000>
-Management | Kafka Rest Service | <http://dataplatform:18086>
-Management | Kafka Connect Rest Service | <http://dataplatform:8083>
-Management | MQTT UI | <http://dataplatform:28136>
-Management | Portainer | <http://dataplatform:28137>
-
+Once the dataplatform is running, you can find an overview page by navigating to <http://dataplatform:80> and a list of avaialble services by navigating to <http://dataplatform:80/services>.
