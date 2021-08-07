@@ -26,7 +26,8 @@ public class KafkaProducerASync {
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 LongSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                StringSerializer.class.getName());
+                StringSerializer.class.getName());,vm
+
         return new KafkaProducer<>(props);
     }
 

@@ -238,9 +238,9 @@ eee
 
 Messages arrive in the same order because you are just not able to enter them quick enough. 
 
-You can stop the consumer by hitting **Ctrl-C**. If you want to consume from the beginning of the log, use the `--from-beginning` option.
+You can stop the consumer by hitting **Ctrl-C**. If you want to consume from the beginning of the log, use the `--from-beginning` option. 
 
-You can also echo a longer message and pipe it into the console producer, as he is reading the next message from the command line:
+You can also pipe data into the console producer and you should see it in the console consumer as well
 
 ```bash
 echo "This is my first message!" | kafka-console-producer \
@@ -248,7 +248,7 @@ echo "This is my first message!" | kafka-console-producer \
                   --topic test-topic
 ```
 
-And of course you can send messages inside a bash for loop:
+So with that in mind, we can of course also send messages inside a bash for loop:
 
 ```bash
 for i in 1 2 3 4 5 6 7 8 9 10
@@ -262,7 +262,9 @@ done
 
 By ending the command in the loop with an & character, we run each command in the background and in parallel. 
 
-If you check the consumer, you can see that they are not in the same order as sent, because of the different partitions, and the messages being published in multiple partitions. We can force order by using a key when publishing the messages and always using the same value for the key. 
+If you check the consumer, you can see that they are not in the same order as sent. The reason for that is that the topic contains of different partitions and we have only one consumer consuming all the partitions. 
+
+We can force order by using a key when publishing the messages and always using the same value for the key.
 
 ### Working with Keyed Messages
 

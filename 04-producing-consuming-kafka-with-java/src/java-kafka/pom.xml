@@ -63,7 +63,7 @@
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>com.trivadis.kafkaws.producer.KafkaProducerSync</mainClass>
+                            <mainClass>com.trivadis.kafkaws.producer.KafkaProducerASync</mainClass>
                         </configuration>						
                     </execution>
                     <execution>
