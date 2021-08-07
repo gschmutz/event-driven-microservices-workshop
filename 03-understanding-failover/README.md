@@ -132,15 +132,15 @@ kafkacat -b localhost -t failsafe-test-topic -G test-group failsafe-test-topic -
 
 In each of the `kafkacat` consumers you will see messages similar to these two:
 
-* The first one shows the assignement of a one or more partions during a rebalance operation
+The first one shows the assignement of a one or more partions during a rebalance operation
 
-	```bash
+```bash
 % Group test-group rebalanced (memberid rdkafka-2ca20461-6d34-4cf6-a7a5-b0f79bf3b36e): assigned: failsafe-test-topic [2]
 ```
 
-* and the second one a revoke of one or more partitions during a rebalance operation
+and the second one a revoke of one or more partitions during a rebalance operation
 
-	```bash
+```bash
 % Group test-group rebalanced (memberid rdkafka-2ca20461-6d34-4cf6-a7a5-b0f79bf3b36e): revoked: failsafe-test-topic [2], failsafe-test-topic [3]
 ```
 
@@ -162,14 +162,6 @@ message 3
 message 4
 message 5
 message 6
-message 7
-message 8
-message 9
-message 10
-message 11
-message 12
-message 13
-message 14
 ```
 
 you should see that each message should only be consumed by one of the 3 consumers and that each consumer consumes it own share of partitions from the `failsafe-test-topic` topic, as show in the following diagram
@@ -180,83 +172,158 @@ you should see that each message should only be consumed by one of the 3 consume
 
 Now let’s see consumer failover in action by killing one of the consumers and sending some more messages. Kafka should divide up the work to the consumers that are running.
 
-First, kill the 2nd consumer (CTRL-C in the consumer terminal does the trick).
+First, kill the 2nd consumer (CTRL-C in the consumer terminal does the trick). In the case shown here, the 2nd consumer was consuming from partition `0` and `1`. 
 
-In the remaining two consumer terminals, you should get a re-balance message, showing that these consumers have gotten new partitions assigned.
+These two partitions will be assigned to one of the 2 remaining consumers. You will again see some  re-balance message, showing that these consumers have gotten new partitions assigned.
 
 ```
 % Group test rebalanced (memberid rdkafka-c6b9607c-fe47-4ffa-b2aa-c783787eedbe): revoked: failsafe-test-topic [3], failsafe-test-topic [4], failsafe-test-topic [5]
 % Group test rebalanced (memberid rdkafka-c6b9607c-fe47-4ffa-b2aa-c783787eedbe): assigned: failsafe-test-topic [0], failsafe-test-topic [1], failsafe-test-topic [2], failsafe-test-topic [3]
 ```
 
-Now send 5 more messages with the Kafka console-producer.
+Now send a few more messages from the producer terminal.
 
-Notice that the messages are spread evenly among the remaining consumers.
+![](./images/kafkacat-same-group-failover.png)
+
+Notice that the messages are spread evenly among the 2 remaining consumers.
 
 We killed one consumer, sent more messages, and saw Kafka spread the load to remaining consumers. Kafka consumer failover works!
 
 ## Kafka Broker Failover
 
+Now let's see what happens if we kill one of the 3 Kafka brokers of the cluster.
+
 ### Describe Topic
-We are going to lists which broker owns (leader of) which partition, and list replicas and ISRs of each partition. ISRs are replicas that are up to date. Remember there are 8 partitions.
 
-Connect to the `kafka-1` container:
+We are going to lists which broker owns (leader of) which partition, and list replicas and ISRs of each partition. ISRs are replicas that are so-called in-sync, meaning that they are up to date. 
 
-```bash
-docker exec -ti kafka-1 bash
-```
+Remember that our topic holds 4 partitions with replaction factor of 3.
 
-And create the topic. 
+Let's see the distribution of these 4 partitions over the brokers using the `--describe` option of the `kafka-topics` command
 
 ```bash
-kafka-topics --describe \
+docker exec -ti kafka-1 kafka-topics --describe \
     --topic failsafe-test-topic \
     --zookeeper zookeeper-1:2181
 ```    
 
+We can see that that `kafka-1` is the leader for Partion 1, whereas `kakfa-2` is the leader for Partition 2 and `kafka-3` is the leader for Partition 0 and Partioin 3. 
+
 ```bash
-Topic:failsafe-test-topic	PartitionCount:8	ReplicationFactor:3	Configs:
-	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,2,1	Isr: 3,2,1
-	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,3,2	Isr: 1,3,2
-	Topic: failsafe-test-topic	Partition: 2	Leader: 2	Replicas: 2,1,3	Isr: 2,1,3
-	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
-	Topic: failsafe-test-topic	Partition: 4	Leader: 1	Replicas: 1,2,3	Isr: 1,2,3
-	Topic: failsafe-test-topic	Partition: 5	Leader: 2	Replicas: 2,3,1	Isr: 2,1,3
-	Topic: failsafe-test-topic	Partition: 6	Leader: 3	Replicas: 3,2,1	Isr: 3,2,1
-	Topic: failsafe-test-topic	Partition: 7	Leader: 1	Replicas: 1,3,2	Isr: 1,3,2
+Topic: failsafe-test-topic	TopicId: KA_b-48OStOgIHhPMBqohg	PartitionCount: 4	ReplicationFactor: 3	Configs:
+	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,2,3	Isr: 1,2,3
+	Topic: failsafe-test-topic	Partition: 2	Leader: 2	Replicas: 2,3,1	Isr: 2,3,1
+	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,2,1	Isr: 3,2,1
 ```
 
-Notice how each broker gets a share of the partitions as leaders and followers. Also, see how Kafka replicates the partitions on each broker.
+Because we use replication factor 3 on the `failsafe-test-topic` a replica of each Partition is avialble on 3 brokers. This is a special case if the replication factor matches the number of brokers in the cluster (both are 3 in our case). 
 
-### Test Broker Failover by killing 1st server
+### Start 2 consumers
 
-Let’s kill the 2nd broker, and then test the failover.
+In 2 different terminal windows, start a consumer with consumer group `test-group`.
+
+```bash
+kafkacat -b localhost:29092,localhost:29093 -t failsafe-test-topic -G test-group failsafe-test-topic -f '%p - %s\n'
+```
+
+**Note:** we specify two borkers in the broker list (`-b` option).
+
+### Start a producer
+
+In another terminal, let's run a Kafka producer inside a loop to produce 10'000 messages
+
+```bash
+for i in {1..10000}
+do
+   echo "This is message $i" | kafkacat -P -b localhost:29092,localhost:29093 -t failsafe-test-topic 
+   sleep 0.5
+done 
+```
+**Note:** we specify two borkers in the broker list (`-b` option).
+
+You should see that both consumers share the consumption of the messages. 
+
+![](./images/kafkacat-cluster-failover-normal.png)
+
+This represents normal behaviour. 
+
+### Test Broker Failover by killing the 2nd broker
+
+Let’s kill the 2nd broker and see what happens
 
 ```bash
 docker stop kafka-2
 ```
 
-Now that the first Kafka broker has stopped, let’s use Kafka topics describe to see that new leaders were elected!
+In the terminal windows of both the consumers and the producer you will get error messages, due to the fact that broker-2 is no longer available. 
+
+![](images/kafkacat-cluster-failover-after-stop-kafka-2.png)
+
+But you can also see that both the producer and the two consumers continue to work. Let's see what happend behind the scences by describing the topic
 
 ```bash
-Topic:failsafe-test-topic	PartitionCount:8	ReplicationFactor:3	Configs:
-	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,2,1	Isr: 3,1
-	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,3,2	Isr: 1,3
-	Topic: failsafe-test-topic	Partition: 2	Leader: 1	Replicas: 2,1,3	Isr: 1,3
-	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,1,2	Isr: 3,1
-	Topic: failsafe-test-topic	Partition: 4	Leader: 1	Replicas: 1,2,3	Isr: 1,3
-	Topic: failsafe-test-topic	Partition: 5	Leader: 3	Replicas: 2,3,1	Isr: 1,3
-	Topic: failsafe-test-topic	Partition: 6	Leader: 3	Replicas: 3,2,1	Isr: 3,1
-	Topic: failsafe-test-topic	Partition: 7	Leader: 1	Replicas: 1,3,2	Isr: 1,3
+docker exec -ti kafka-1 kafka-topics --describe \
+    --topic failsafe-test-topic \
+    --zookeeper zookeeper-1:2181
+```  
+
+We can see that `kafka-2` is no longer a leader for any of the partitions. Before the shutdown `kafka-2` was the leader for Partion 2. Additionally the Isr list has been reduced to broker 3 and 1 (the two remaining brokers). 
+
+```bash
+$ docker exec -ti kafka-1 kafka-topics --describe     --topic failsafe-test-topic     --zookeeper zookeeper-1:2181
+Topic: failsafe-test-topic	TopicId: KA_b-48OStOgIHhPMBqohg	PartitionCount: 4	ReplicationFactor: 3	Configs:
+	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1
+	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,2,3	Isr: 3,1
+	Topic: failsafe-test-topic	Partition: 2	Leader: 3	Replicas: 2,3,1	Isr: 3,1
+	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,2,1	Isr: 3,1
 ```
 
-You can see that `kafka-2` is no longer a leader for any of the partitions. 
+Let's fix the situation by restarting `kafka-2`
 
-Let’s prove that failover worked by sending two more messages from the producer console. Notice if the consumers still get the messages.
+```bash
+docker start kafka-2
+```
 
-## Kafka Cluster Failover Review
+Let's see if the situation has been normalized by executing another descirbe of the topic
 
-- Why did the three consumers not load share the messages at first?
-- How did we demonstrate failover for consumers?
-- How did we show failover for producers?
-- What tool and option did we use to show ownership of partitions and the ISRs?
+```bash
+docker exec -ti kafka-1 kafka-topics --describe \
+    --topic failsafe-test-topic \
+    --zookeeper zookeeper-1:2181
+```  
+
+We can see that the Isr list again holds all 3 brokers, so all of the replicas are again in sync (including the one on `kafka-2`). If you don't see that result, just retry, as it might take a while for the situation to recover.
+
+```bash
+$ docker exec -ti kafka-1 kafka-topics --describe     --topic failsafe-test-topic     --zookeeper zookeeper-1:2181
+Topic: failsafe-test-topic	TopicId: KA_b-48OStOgIHhPMBqohg	PartitionCount: 4	ReplicationFactor: 3	Configs:
+	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,2,3	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 2	Leader: 3	Replicas: 2,3,1	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,2,1	Isr: 3,1,2
+```
+
+But there is one thing which does not yet reflect the situation before "loosing" broker 2: `kafka-2` is not a leader for Partition 2! Kafka knows about the prefered replicas, meaning which borker should be the leader. We can perform a leader election by performing the following command with the partition we want to run the prefered leader election on.  
+
+```bash
+docker exec -ti kafka-1 kafka-leader-election \
+  --bootstrap-server kafka-1:19092 \
+  --topic failsafe-test-topic \
+  --partition 2 \
+  --election-type preferred
+```
+
+After that repeat the describe and now `kafka-2` should be again the leader for Partition 2:
+
+```bash
+$ docker exec -ti kafka-1 kafka-topics --describe     --topic failsafe-test-topic     --zookeeper zookeeper-1:2181
+Topic: failsafe-test-topic	TopicId: KA_b-48OStOgIHhPMBqohg	PartitionCount: 4	ReplicationFactor: 3	Configs:
+	Topic: failsafe-test-topic	Partition: 0	Leader: 3	Replicas: 3,1,2	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 1	Leader: 1	Replicas: 1,2,3	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 2	Leader: 2	Replicas: 2,3,1	Isr: 3,1,2
+	Topic: failsafe-test-topic	Partition: 3	Leader: 3	Replicas: 3,2,1	Isr: 3,1,2
+```
+
+During all of these operations, you should see no effect on the producer and the two consumers. The continue to run normally.
+

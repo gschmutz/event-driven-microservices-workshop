@@ -255,8 +255,7 @@ for i in 1 2 3 4 5 6 7 8 9 10
 do
    echo "This is message $i"| kafka-console-producer \
                   --broker-list kafka-1:19092,kafka-2:19093 \
-                  --topic test-topic \
-                  --batch-size 1 &
+                  --topic test-topic &
 done 
 ```
 
