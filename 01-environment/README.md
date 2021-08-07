@@ -21,11 +21,15 @@ These steps are necessary after the starting the docker environment.
 To simplify working with the Data Platform and for the links below to work, add the following entry to your local `/etc/hosts` file. 
 
 ```
-40.91.195.92	dataplatform
+nnn.nnn.nnn	dataplatform
 ```
 
-Replace the IP address by the IP address of the (virtual) machine, where the Data Platform is running. 
+Replace `nnn.nnn.nnn` by the IP address of the (virtual) machine, where the Data Platform is running. 
 
+If you like to swith between multiple versions of Data Platforms (i.e. you often need to replace the IP address behin the `dataplatform` alias), there some helper utilities you can use:
+ 
+ * On windows eiher use [HostFileEditor](https://github.com/scottlerch/HostsFileEditor) or [Host Switcher](<https://github.com/svejdo1/HostsSwitcher>) 
+ * On Mac OS-X use [iHosts](https://apps.apple.com/app/id1102004240?ls=1&mt=12), which is free with some limitations
 
 ## Services accessible on Streaming Platform
 
