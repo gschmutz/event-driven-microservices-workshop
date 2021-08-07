@@ -24,7 +24,7 @@ To simplify working with the Data Platform and for the links below to work, add 
 40.91.195.92	dataplatform
 ```
 
-Replace the IP address by the public IP address of the docker host. 
+Replace the IP address by the IP address of the (virtual) machine, where the Data Platform is running. 
 
 
 ## Services accessible on Streaming Platform
