@@ -17,13 +17,6 @@ export PUBLIC_IP=10.1.215.134
 export DOCKER_HOST_IP=10.1.215.134
 ```
 
-Now for Elasticsearch to run properly, we have to increase the `vm.max_map_count` parameter like shown below.  
-
-```
-# needed for elasticsearch
-sudo sysctl -w vm.max_map_count=262144   
-```
-
 Now let's checkout the NoSQL Workshop project from GitHub:
 
 Navigate to your local folder, where you want to keep the workshop and execute the `git clone` command
@@ -32,23 +25,44 @@ Navigate to your local folder, where you want to keep the workshop and execute t
 # Get the project
 git clone https://github.com/gschmutz/event-driven-microservices-workshop.git
 cd event-driven-microservices-workshop/01-environment/docker/
+export DATAPLATFORM_HOME=$PWD
 ```
+
+Finally let's persist the 3 environment variables `PUBLIC_IP`, `DOCKER_HOST_IP` and `DATAPLATFORM_HOME`, so that they are available after a logout.
+
+```bash
+# Prepare Environment Variables into .bash_profile file
+printf "export PUBLIC_IP=$PUBLIC_IP\n" >> /home/$USER/.bash_profile
+printf "export DOCKER_HOST_IP=$DOCKER_HOST_IP\n" >> /home/$USER/.bash_profile
+printf "export DATAPLATFORM_HOME=$DATAPLATFORM_HOME\n" >> /home/$USER/.bash_profile
+printf "\n" >> /home/$USER/.bash_profile
+sudo chown ${USER}:${USER} /home/$USER/.bash_profile
+```
+
+For Elasticsearch to run properly, we have to increase the `vm.max_map_count` parameter like shown below.  
+
+```bash
+# needed for elasticsearch
+sudo sysctl -w vm.max_map_count=262144   
+```
+
+Now with the environment prepared, we can start the Docker Compose stack.
 
 ## Start Environment
 
-And finally let's start the environment:
+Start the environment by beforming a `docker-compose up`
 
 ```
 # Make sure that the environment is not running
 docker-compose down
 
-# Startup Environment
+# Startup Environment in detached mode (background)
 docker-compose up -d
 ```
 
-The environment should start immediately, as all the necessary images should already be available in the local docker image registry. 
+If started the first time, the necessary docker images will be downloaded from the public docker registry. Therefore you need internet access from your machine.
 
-The output should be similar to the one below. 
+Once this is done, the docker container will start one by one, and at the end the output should be similar to the one below. 
 
 ![Alt Image Text](./images/start-env-docker.png "StartDocker")
 
@@ -63,6 +77,8 @@ docker-compose stop
 ```
 
 after that it can be re-started using `docker-compose start`.
+
+## Remove the environment
 
 To stop and remove all running container, execute the following command:
 

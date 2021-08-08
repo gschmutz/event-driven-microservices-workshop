@@ -92,7 +92,7 @@ Now let's checkout the Event-Driven Microservices Workshop project from GitHub:
 cd 
 git clone https://github.com/gschmutz/event-driven-microservices-workshop.git
 cd event-driven-microservices-workshop/01-environment/docker/
-export $DATAPLATFORM_HOME=$PWD
+export DATAPLATFORM_HOME=$PWD
 ```
 
 Finally let's persist the 3 environment variables `PUBLIC_IP`, `DOCKER_HOST_IP` and `DATAPLATFORM_HOME`, so that they are available after a logout.
@@ -103,7 +103,7 @@ printf "export PUBLIC_IP=$PUBLIC_IP\n" >> /home/$USER/.bash_profile
 printf "export DOCKER_HOST_IP=$DOCKER_HOST_IP\n" >> /home/$USER/.bash_profile
 printf "export DATAPLATFORM_HOME=$DATAPLATFORM_HOME\n" >> /home/$USER/.bash_profile
 printf "\n" >> /home/$USER/.bash_profile
-sudo chown ${USER}:${USER} /home/$USERNAME/.bash_profile
+sudo chown ${USER}:${USER} /home/$USER/.bash_profile
 ```
 
 For Elasticsearch to run properly, we have to increase the `vm.max_map_count` parameter like shown below.  
