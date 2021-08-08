@@ -572,7 +572,8 @@
       #
       POSTGRESQL_enable: true
       POSTGRESQL_volume_map_data: false
-      POSTGRESQL_database: t0_customer
+      POSTGRESQL_database: customer
+      POSTGRESQL_multiple_databases: 'customer,order'
       POSTGRESQL_user: mio
       POSTGRESQL_password: mio
       POSTGRESQL_schema: mio

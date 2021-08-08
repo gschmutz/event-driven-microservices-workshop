@@ -456,10 +456,10 @@ services:
     environment:
       - POSTGRES_PASSWORD=mio
       - POSTGRES_USER=mio
-      - POSTGRES_DB=t0_customer
+      - POSTGRES_DB=customer
+      - POSTGRES_MULTIPLE_DATABASES=customer,order
       - PGDATA=/var/lib/postgresql/data/pgdata
       - DB_SCHEMA=mio
-      - DB_ANON_ROLE=mio
     volumes:
       - ./data-transfer:/data-transfer
       - ./init/postgresql:/docker-entrypoint-initdb.d/
