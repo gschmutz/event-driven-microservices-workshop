@@ -464,6 +464,32 @@ services:
       - ./data-transfer:/data-transfer
       - ./init/postgresql:/docker-entrypoint-initdb.d/
     restart: unless-stopped
+  #  ================================== Adminer ========================================== #
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    hostname: adminer
+    labels:
+      com.platys.webui.title: Adminer UI
+      com.platys.webui.url: http://${PUBLIC_IP}:28131
+    ports:
+      - 28131:8080
+    volumes:
+      - ./data-transfer:/data-transfer
+    restart: unless-stopped
+  #  ================================== Cloudbeaver ========================================== #
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
+    container_name: cloudbeaver
+    hostname: cloudbeaver
+    labels:
+      com.platys.webui.title: Cloudbeaver UI
+      com.platys.webui.url: http://${PUBLIC_IP}:8978
+    ports:
+      - 8978:8978
+    volumes:
+      - ./data-transfer:/data-transfer
+    restart: unless-stopped
   #  ================================== Nuclio Dashboard ========================================== #
   nuclio:
     image: quay.io/nuclio/dashboard:stable-amd64
