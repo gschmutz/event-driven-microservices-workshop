@@ -459,7 +459,6 @@ services:
       - POSTGRES_DB=t0_customer
       - PGDATA=/var/lib/postgresql/data/pgdata
       - DB_SCHEMA=mio
-      - DB_ANON_ROLE=appuser
     volumes:
       - ./data-transfer:/data-transfer
       - ./init/postgresql:/docker-entrypoint-initdb.d/
