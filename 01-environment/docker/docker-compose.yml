@@ -457,9 +457,9 @@ services:
       - POSTGRES_PASSWORD=abc123!
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
-      - POSTGRES_MULTIPLE_DATABASES=customer,order
-      - POSTGRES_MULTIPLE_USERS=mio,mio
-      - POSTGRES_MULTIPLE_PASSWORDS=mio,mio
+      - POSTGRES_MULTIPLE_DATABASES=customer,ordermgmt,assortment
+      - POSTGRES_MULTIPLE_USERS=mio,mio,mio
+      - POSTGRES_MULTIPLE_PASSWORDS=mio,mio,mio
       - PGDATA=/var/lib/postgresql/data/pgdata
       - DB_SCHEMA=mio
     volumes:

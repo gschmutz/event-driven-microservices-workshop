@@ -573,9 +573,9 @@
       POSTGRESQL_enable: true
       POSTGRESQL_volume_map_data: false
       #POSTGRESQL_database: customer
-      POSTGRESQL_multiple_databases: 'customer,order'
-      POSTGRESQL_multiple_users: 'mio,mio'
-      POSTGRESQL_multiple_passwords: 'mio,mio'
+      POSTGRESQL_multiple_databases: 'customer,ordermgmt,assortment'
+      POSTGRESQL_multiple_users: 'mio,mio,mio'
+      POSTGRESQL_multiple_passwords: 'mio,mio,mio'
       #POSTGRESQL_user: mio
       #POSTGRESQL_password: mio
       POSTGRESQL_schema: mio
