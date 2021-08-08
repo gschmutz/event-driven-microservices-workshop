@@ -691,7 +691,7 @@
       #
       # ===== ActiveMQ ========
       #
-      ACTIVEMQ_enable: false
+      ACTIVEMQ_enable: true
       ACTIVEMQ_volume_map_data: false
       #
       # ===== RabbitMQ ========

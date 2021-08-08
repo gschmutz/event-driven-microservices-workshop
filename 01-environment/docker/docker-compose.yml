@@ -482,6 +482,29 @@ services:
       - /tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+  #  ================================== Active MQ ========================================== #
+  activemq:
+    image: rmohr/activemq:5.15.9
+    container_name: activemq
+    labels:
+      com.platys.webui.title: ActiveMQ UI
+      com.platys.webui.url: http://${PUBLIC_IP}:8161
+    ports:
+      # mqtt
+      - 1890:1883
+      # amqp
+      - 5672:5672
+      # ui
+      - 8161:8161
+      # stomp
+      - 61613:61613
+      # ws
+      - 61614:61614
+      # jms
+      - 61616:61616
+    volumes:
+      - ./data-transfer:/data-transfer
+    restart: unless-stopped
   #  ================================== cAdvisor ========================================== #
   wetty:
     image: svenihoney/wetty:latest
