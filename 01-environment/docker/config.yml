@@ -575,8 +575,8 @@
       POSTGRESQL_database: t0_customer
       POSTGRESQL_user: mio
       POSTGRESQL_password: mio
-      POSTGRESQL_schema: demo
-      POSTGRESQL_anon_role: appuser
+      POSTGRESQL_schema: mio
+      #POSTGRESQL_anon_role: appuser
       #
       # ===== Posgrest ========
       #

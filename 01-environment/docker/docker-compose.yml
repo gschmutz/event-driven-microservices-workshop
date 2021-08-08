@@ -458,7 +458,7 @@ services:
       - POSTGRES_USER=mio
       - POSTGRES_DB=t0_customer
       - PGDATA=/var/lib/postgresql/data/pgdata
-      - DB_SCHEMA=demo
+      - DB_SCHEMA=mio
       - DB_ANON_ROLE=appuser
     volumes:
       - ./data-transfer:/data-transfer
