@@ -491,6 +491,7 @@ services:
       - 8978:8978
     volumes:
       - ./data-transfer:/data-transfer
+      - ./conf/cloudbeaver/data-sources.json:/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json
     restart: unless-stopped
   #  ================================== Nuclio Dashboard ========================================== #
   nuclio:
