@@ -573,8 +573,8 @@
       POSTGRESQL_enable: true
       POSTGRESQL_volume_map_data: false
       POSTGRESQL_database: demodb
-      POSTGRESQL_user: demo
-      POSTGRESQL_password: abc123!
+      POSTGRESQL_user: mio
+      POSTGRESQL_password: mio
       POSTGRESQL_schema: demo
       POSTGRESQL_anon_role: appuser
       #

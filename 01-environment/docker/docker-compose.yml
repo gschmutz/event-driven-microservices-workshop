@@ -454,8 +454,8 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_PASSWORD=abc123!
-      - POSTGRES_USER=demo
+      - POSTGRES_PASSWORD=mio
+      - POSTGRES_USER=mio
       - POSTGRES_DB=demodb
       - PGDATA=/var/lib/postgresql/data/pgdata
       - DB_SCHEMA=demo
