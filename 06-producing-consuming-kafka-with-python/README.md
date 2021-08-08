@@ -1,6 +1,4 @@
-# Using Confluent's Python client for Apache Kafka
-
-## Introduction
+# Using Kafka with Confluent's Python client
 
 In this workshop we will learn how to use the [Confluent Python client for Apache Kafka](https://github.com/confluentinc/confluent-kafka-python).
 

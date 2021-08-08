@@ -1,4 +1,4 @@
-# Working with Kafka from Java
+# Using Kafka from Java
 
 In this workshop we will learn how to produce and consume messages using the [Kafka Java API](https://kafka.apache.org/documentation/#api).
 

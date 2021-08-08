@@ -1,4 +1,4 @@
-# Working with Kafka from .NET
+# Using Kafka with Confluent's .NET client
 
 In this workshop we will learn how to produce and consume messages using the [Kafka .NET API](https://docs.confluent.io/clients-confluent-kafka-dotnet/current/overview.html).
 

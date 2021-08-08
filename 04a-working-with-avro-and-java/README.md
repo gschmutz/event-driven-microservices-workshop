@@ -1,4 +1,4 @@
-# Working with Avro and Java
+# Using Kafka from Java with Avro & Schema Registry
 
 In this workshop we will learn how to produce and consume messages using the [Kafka Java API](https://kafka.apache.org/documentation/#api) using Avro for serializing and deserializing messages.
 
