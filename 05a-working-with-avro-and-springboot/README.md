@@ -328,7 +328,7 @@ We again refer to properties, which will be defined later in the `application.ym
 
 We change the generated Spring Boot application to be a console appliation by implementing the `CommandLineRunner` interface. The `run` method holds the same code as the `main()` method in [Workshop 4: Working with Kafka from Java](../04-producing-consuming-kafka-with-java). The `runProducer` method is also similar, we just use the `kafkaEventProducer` instance injected by Spring to produce the messages to Kafka.
 
-```
+```java
 package com.trivadis.kafkaws.springbootkafkaproducer;
 
 import com.trivadis.kafkaws.avro.v1.Notification;
@@ -371,9 +371,10 @@ public class SpringBootKafkaProducerApplication implements CommandLineRunner {
 
 		for (int index = 0; index < sendMessageCount; index++) {
 			Notification notification = Notification.newBuilder()
-														.setId(id)
-														.setMessage("[" + id + "] Hello Kafka " + index)
-														.setCreatedAt(Instant.now()).build();
+												.setId(id)
+												.setMessage("[" + id + "] Hello Kafka " + index)
+												.setCreatedAt(Instant.now())
+												.build();
 
 			kafkaEventProducer.produce(index, key, notification);
 
