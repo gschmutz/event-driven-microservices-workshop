@@ -410,6 +410,7 @@ spring:
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
         auto.register.schemas: false
+        use.latest.version: true
     properties:
       schema.registry.url: http://${DATAPLATFORM_IP}:8081
 ```
