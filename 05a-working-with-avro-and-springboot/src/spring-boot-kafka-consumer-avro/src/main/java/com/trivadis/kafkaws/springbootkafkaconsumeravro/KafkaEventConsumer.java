@@ -1,4 +1,4 @@
-package com.trivadis.kafkaws.springbootkafkaconsumer;
+package com.trivadis.kafkaws.springbootkafkaconsumeravro;
 
 import com.trivadis.kafkaws.avro.v1.Notification;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -17,5 +17,4 @@ public class KafkaEventConsumer {
         Long key = consumerRecord.key();
         LOGGER.info("received key = '{}' with payload='{}'", key, value);
     }
-
 }
