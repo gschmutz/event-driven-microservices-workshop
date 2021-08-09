@@ -204,7 +204,7 @@ This finishes the setup steps and our new project is ready to be used. Next we w
 
 First create a new Folder `avro` under the existing folder **src/main/**.
 
-Create a new File `Notificatiokafka-n-v1.avsc` in the folder  **src/main/avro** just created above.
+Create a new File `Notification-v1.avsc` in the folder  **src/main/avro** just created above.
 
 Add the following Avro schema to the empty file.  
 
