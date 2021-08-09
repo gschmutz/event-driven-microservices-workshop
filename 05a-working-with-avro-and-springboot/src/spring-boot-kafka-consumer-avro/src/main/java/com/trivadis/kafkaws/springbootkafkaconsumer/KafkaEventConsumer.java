@@ -11,8 +11,8 @@ public class KafkaEventConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaEventConsumer.class);
 
     @KafkaListener(topics = "${topic.name}", groupId = "simple-consumer-group")
-    public void receive(ConsumerRecord<Long, String> consumerRecord) {
-        String value = consumerRecord.value();
+    public void receive(ConsumerRecord<Long, Notification> consumerRecord) {
+        Notification value = consumerRecord.value();
         Long key = consumerRecord.key();
         LOGGER.info("received key = '{}' with payload='{}'", key, value);
     }
