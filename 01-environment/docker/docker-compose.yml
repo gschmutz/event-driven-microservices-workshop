@@ -197,7 +197,7 @@ services:
       - -c
       - |
         echo "Installing Connectors"
-        for i in $$(echo "None" | sed "s/,/ /g")
+        for i in $$(echo "mdrogalis/voluble:0.3.1" | sed "s/,/ /g")
         do
           confluent-hub install --no-prompt --component-dir /etc/kafka-connect/addl-plugins --verbose "$$i"
         done
