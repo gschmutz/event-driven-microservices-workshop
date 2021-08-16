@@ -2,7 +2,7 @@
 
 In this workshop we will learn how to process messages using the [KafkaStreams](https://kafka.apache.org/documentation/streams/) library.
 
-We will create a basic processor which consumes messages from a topic, processes them and produces the result into a new topic. We will be using once the DSL and once the more low-level Processor API.
+We will create a basic processor which consumes messages from a topic, processes them and produces the result into a new topic. We will be using once using the High-Level DSL and once the more low-level Processor API.
 
 ## Create the project in your Java IDE
 
@@ -170,7 +170,7 @@ class KafkaStreamsRunnerDSL {
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev1");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "basic");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Void().getClass());
@@ -248,9 +248,9 @@ class KafkaStreamsRunnerDSL {
         
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev1");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "aggregation");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
@@ -263,6 +263,8 @@ class KafkaStreamsRunnerDSL {
     }
 }
 ```
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
 
 Start the programm and then first run a `kafkacat` consumer on the output topic
 
@@ -299,6 +301,10 @@ within a single minute. After a minute the output from the consumer should be si
 ```
 
 ## Using Custom State 
+
+We can also run our own state store from Kafka Streams. For that we basically combine Kafka Streams DLS with the Processor API, implementing the `Transformer` interface. 
+
+In this simple implementation we are again using the message key as the grouping criteria and concat all the values we got since the beginning and return the new value as part of the new message. Both the key and the value are serialized as `String`.
 
 Create a new Java package `com.trivads.kafkaws.kstream.customstate` and in it a Java class `KafkaStreamsRunnerDSL`. 
 
@@ -338,15 +344,20 @@ class KafkaStreamsRunnerDSL {
         // read from the source topic, "test-kstream-input-topic"
         KStream<String, String> stream = builder.stream("test-kstream-input-topic");
 
+        // invoke the transformer
         KStream<String, String> transformedStream = stream.transform(() -> myStateHandler, myStateStore.name() );
 
+        // peek into the stream and execute a println
         transformedStream.peek((k,v) -> System.out.println("key: " + k + " - value:" + v));
+
+        // publish result
+        transformedStream.to("test-kstream-output-topic");
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev1");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "customstate");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
@@ -393,6 +404,64 @@ class KafkaStreamsRunnerDSL {
 }
 ```
 
+We can see the implementation of the custom state store in these lines
+
+```java
+        final StoreBuilder<KeyValueStore<String, String>> myStateStore = Stores
+                .keyValueStoreBuilder(Stores.persistentKeyValueStore("MyStateStore"), Serdes.String(), Serdes.String())
+                .withCachingEnabled();
+        builder.addStateStore(myStateStore);
+```
+
+The state management happens inside the `MyStateHandler` class. It implements the `Transformer<String, String, KeyValue<String, String>` interface, where the generics should be read like that:
+
+* as input we get a `String` key, a `String` value and return a `KeyValue<String,String>`, again the first `String` being the type of the key and the second `String` the type of the value. 
+ 
+```java
+private static final class MyStateHandler implements Transformer<String, String, KeyValue<String, String>>
+```
+
+In our case we want to access both the key and the value of the message. If the value is enough, you better implement the `ValueTransformer` instead. 
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and then first run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic -o end -f "%k,%s\n" -q
+```
+
+with that in place, in 2nd terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, such as
+
+```bash
+A,AAA
+A,BBB
+A,CCC
+B,111
+B,222
+B,333
+```
+
+within a single minute. After a minute the output from the consumer should be similar to the one shown below
+
+```bash
+A,AAA
+A,AAA,BBB
+A,AAA,BBB,CCC
+B,111
+B,111,222
+B,111,222,333
+```
+
+### Add-Ons
+
+* Implement an additional stream which you can use to signal clearing the state (either globally or just for the given key)
 
 ## Implementing the Kafka Streams Processor using the Processor API
 
@@ -479,3 +548,9 @@ public class ChangeCaseProcessor implements Processor<Void, String, Void, String
     }
 }
 ```
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-output-topic> and click on **Empty Topic** on the bottom). 
+
+### Add-Ons
+
+* Add a punctuator which sends a signal ever 1 minute

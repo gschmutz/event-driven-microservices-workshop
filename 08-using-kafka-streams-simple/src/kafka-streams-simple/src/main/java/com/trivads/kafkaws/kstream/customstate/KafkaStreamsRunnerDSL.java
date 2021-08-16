@@ -31,15 +31,20 @@ class KafkaStreamsRunnerDSL {
         // read from the source topic, "test-kstream-input-topic"
         KStream<String, String> stream = builder.stream("test-kstream-input-topic");
 
+        // invoke the transformer
         KStream<String, String> transformedStream = stream.transform(() -> myStateHandler, myStateStore.name() );
 
+        // peek into the stream and execute a println
         transformedStream.peek((k,v) -> System.out.println("key: " + k + " - value:" + v));
+
+        // publish result
+        transformedStream.to("test-kstream-output-topic");
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev1");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "customstate");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
