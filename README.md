@@ -23,3 +23,4 @@ ID  | Title   | Descritpion
 8 | [Using Kafka Streams](./08-using-kafka-streams-simple)  | learn how to use Kafka Streams from Java to perform stream analytics
 8a | [Using Kafka Streams from Spring Boot](./08a-using-kafka-streams-from-springboot)  | learn how to use Kafka Streams from Spring Boot to extend your Spring Boot microservice with stream analytics capabilities
 8b | [Using Kafka Streams with Azkarra Streams](./08b-using-kafka-streams-with-azkarra)  | learn how to use Kafka Streams with Azkarra Streams Framework to simplify writing Kafka Streams microservices.
+9 | [Vehicle Tracking End-to-End application](./09-vehicle-tracking-application)  | learn how to use Kafka Streams with Azkarra Streams Framework to simplify writing Kafka Streams microservices.
