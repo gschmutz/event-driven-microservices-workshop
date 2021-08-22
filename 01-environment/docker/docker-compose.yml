@@ -252,7 +252,7 @@ services:
     restart: unless-stopped
   #  ================================== ksqlDB ========================================== #
   ksqldb-server-1:
-    image: confluentinc/ksqldb-server:0.19.0
+    image: confluentinc/ksqldb-server:0.20.0
     hostname: ksqldb-server-1
     container_name: ksqldb-server-1
     labels:
@@ -301,7 +301,7 @@ services:
   # Access the cli by running:
   # > docker exec -it ksqldb-cli ksql http://ksqldb-server-1:8088
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:0.19.0
+    image: confluentinc/ksqldb-cli:0.20.0
     container_name: ksqldb-cli
     hostname: ksqldb-cli
     depends_on:
