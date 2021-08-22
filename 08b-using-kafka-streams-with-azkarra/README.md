@@ -308,3 +308,47 @@ Azkarra also provides a default WebUI for exploring your local streams applicati
 
 ![Alt Image Text](./images/azkarra-dashbaord-ui.png "Spring Initializr")
 
+### Details on Instances
+
+Navigate to **Instances** in the menu on the left side
+
+![Alt Image Text](./images/azkarra-kafka-streams-instances.png "Spring Initializr")
+
+Click on **tumbleWindowCountTopologyProvider** and you will see an overview of the Kafka Streams instance
+
+![Alt Image Text](./images/azkarra-kafka-streams-instance.png "Spring Initializr")
+
+Click on **DAG** to see a graphical representation of the Kafka Streams application
+
+![Alt Image Text](./images/azkarra-kafka-streams-instance-dag.png "Spring Initializr")
+
+Click on **Consumer Offsets** to monitor possible consumer lags of your Kafka Streams topology
+
+![Alt Image Text](./images/azkarra-kafka-streams-instance-consumer-offsets.png "Spring Initializr")
+
+### Interactive Queries
+
+If the Kafka Streams uses state stores, which our application here does, then the Azkarra UI allows to execute queries agains the state stores from the Dashbaord UI. This is a standard functionality of Kafka Streams, which is implemented and availble to use by Azkarra Streams. 
+
+Navigate to **Interactive Queries** in the menu on the left side. In the **Application** drop-down select the application, in the **Store** drop-down select the `count` state store, select `TimestampedWindow` for the **Type** and select `all` for the **Operation**. 
+
+![Alt Image Text](./images/azkarra-interactive-queries.png "Spring Initializr")
+
+Click **Execute** to run the query and you can see all the informaiton in the state store
+
+![Alt Image Text](./images/azkarra-interactive-queries-2.png "Spring Initializr")
+
+If you know the time range (`timeFrom` and `timeTo`) you can switch the **Operation** to `fetch_all`
+
+![Alt Image Text](./images/azkarra-interactive-queries-3.png "Spring Initializr")
+
+and you get the counts just for the given time range. The other operations allow to also restrict the keys you want to see.
+
+Click on **CopyAsCurl** to get the `curl` command matching the query:
+
+```bash
+curl -H "Accept: application/json" -H "Content-Type:application/json" -sX POST http://localhost:8080/api/v1/applications/tumble-window-count-topology-provider-1-0-s-n-a-p-s-h-o-t/stores/count --data '{"set_options":{"query_timeout_ms":30000,"retries":100,"retry_backoff_ms":100,"remote_access_allowed":true},"type":"timestamped_window","query":{"fetch_all":{"keyFrom":"A","keyTo":"Z","timeFrom":"1629639660000","timeTo":"1629639720000","key":"A","time":"1629639709666"}}}'
+```
+ 
+
+
