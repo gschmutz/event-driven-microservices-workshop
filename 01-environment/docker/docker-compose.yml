@@ -197,7 +197,7 @@ services:
       - -c
       - |
         echo "Installing Connectors"
-        for i in $$(echo "mdrogalis/voluble:0.3.1" | sed "s/,/ /g")
+        for i in $$(echo "mdrogalis/voluble:0.3.1,confluentinc/kafka-connect-jdbc:10.0.0,confluentinc/kafka-connect-mqtt:1.3.0,debezium/debezium-connector-mysql:1.1.0" | sed "s/,/ /g")
         do
           confluent-hub install --no-prompt --component-dir /etc/kafka-connect/addl-plugins --verbose "$$i"
         done
@@ -428,6 +428,43 @@ services:
     volumes:
       - ./data-transfer:/data-transfer
     restart: unless-stopped
+  #  ================================== StreamSets DataCollector ========================================== #
+  streamsets-1:
+    image: streamsets/datacollector:3.22.2
+    container_name: streamsets-1
+    hostname: streamsets-1
+    labels:
+      com.platys.webui.title: StreamSets Data Collector UI
+      com.platys.webui.url: http://${PUBLIC_IP}:18630
+      com.platys.restapi.title: StreamSets Data Collector REST API
+      com.platys.restapi.url: http://${PUBLIC_IP}:18630/collector/restapi
+    ports:
+      - 18630:18630
+    environment:
+      SDC_OFFSET_DIRECTORY: /data/custom-offset-el
+      SDC_INSTALL_STAGES: ''
+      SDC_INSTALL_ENTERPRISE_STAGES: ''
+      SDC_JAVA_OPTS: -Xmx2g -Xms2g
+      SDC_JAVA8_OPTS: -XX:+UseG1GC
+      SDC_CONF_MONITOR_MEMORY: 'true'
+      SDC_CONF_PIPELINE_MAX_RUNNERS_COUNT: 50
+      SDC_CONF_http_authentication: form
+    volumes:
+      - ./data-transfer:/data-transfer
+      - ./conf/streamsets/pre-docker-entrypoint.sh:/pre-docker-entrypoint.sh
+      - ./plugins/streamsets/user-libs:/opt/streamsets-datacollector-user-libs:Z
+    ulimits:
+      nofile:
+        soft: 32768
+        hard: 32768
+    user: '1000'
+    command:
+      - dc
+      - -exec
+      - -verbose
+    entrypoint:
+      - /pre-docker-entrypoint.sh
+    restart: unless-stopped
   #  ================================== Redis ========================================== #
   redis-1:
     image: bitnami/redis:6.0.9
@@ -458,6 +495,21 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD='abc123!'
       - REDIS_DB=0
+    volumes:
+      - ./data-transfer:/data-transfer
+    restart: unless-stopped
+  #  ================================== MySQL ========================================== #
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_DATABASE=sample
+      - MYSQL_USER=sample
+      - MYSQL_PASSWORD=sample
+      - MYSQL_ROOT_PASSWORD=manager
+      - MYSQL_LOG_CONSOLE=true
     volumes:
       - ./data-transfer:/data-transfer
     restart: unless-stopped
@@ -525,6 +577,31 @@ services:
       - ./data-transfer:/data-transfer
       - /tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+  #  ================================== Mosquitto ========================================== #
+  mosquitto-1:
+    image: eclipse-mosquitto:2.0
+    hostname: mosquitto-1
+    container_name: mosquitto-1
+    ports:
+      - 1883:1883
+      - 9001:9001
+    volumes:
+      - ./data-transfer:/data-transfer
+      - ./conf/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+  #  ================================== MQTT UI ========================================== #
+  mqtt-ui:
+    image: vergissberlin/hivemq-mqtt-web-client:latest
+    container_name: mqtt-ui
+    hostname: mqtt-ui
+    labels:
+      com.platys.webui.title: HiveMQ UI
+      com.platys.webui.url: http://${PUBLIC_IP}:28136
+    ports:
+      - 28136:80
+    volumes:
+      - ./data-transfer:/data-transfer
     restart: unless-stopped
   #  ================================== Active MQ ========================================== #
   activemq:

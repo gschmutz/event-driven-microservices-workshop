@@ -96,7 +96,7 @@
       #
       KAFKA_CONNECT_enable: true
       KAFKA_CONNECT_nodes: 2
-      KAFKA_CONNECT_connectors: 'mdrogalis/voluble:0.3.1'
+      KAFKA_CONNECT_connectors: 'mdrogalis/voluble:0.3.1,confluentinc/kafka-connect-jdbc:10.0.0,confluentinc/kafka-connect-mqtt:1.3.0,debezium/debezium-connector-mysql:1.1.0'
       KAFKA_CONNECT_config_providers: 'file'
       KAFKA_CONNECT_config_providers_classes: 'org.apache.kafka.common.config.provider.FileConfigProvider'
       KAFKA_CONNECT_map_settings_file: false
@@ -282,7 +282,7 @@
       #
       # =====  Streamsets Data Collector ========
       #
-      STREAMSETS_enable: false
+      STREAMSETS_enable: true
       STREAMSETS_volume_map_data: false
       STREAMSETS_volume_map_logs: false
       STREAMSETS_volume_map_security_policy: false
@@ -562,7 +562,7 @@
       #
       # ===== MySQL ========
       #
-      MYSQL_enable: false
+      MYSQL_enable: true
       #
       # ===== SQL Server ========
       #
@@ -666,7 +666,7 @@
       #
       # ===== MQTT Mosquitto ========
       #
-      MOSQUITTO_enable: false
+      MOSQUITTO_enable: true
       MOSQUITTO_nodes: 1
       MOSQUITTO_volume_map_data: false
       #
@@ -683,7 +683,7 @@
       #
       # ===== MQTT UIs ========
       #
-      MQTT_UI_enable: false
+      MQTT_UI_enable: true
       CEDALO_MANAGEMENT_CENTER_enable: false
       #
       # ===== Thingsboard ========
