@@ -20,3 +20,4 @@ ID  | Title   | Descritpion
 6 |[Using Kafka with Confluent's Python client](./06-producing-consuming-kafka-with-python)  | learn how to use Python to consume and produce from/to Kafka
 7 | [Using Kafka with Confluent's .NET client](./07-producing-consuming-kafka-with-dotnet)  | learn how to use .NET to consume and produce from/to Kafka
 8 | [Using Kafka Streams](./07-using-kafka-streams-simple)  | learn how to use Kafka Streams from Java to perform stream analytics
+8a | [Using Kafka Streams from Spring Boot](./07a-using-kafka-streams-from-springboot)  | learn how to use Kafka Streams from Spring Boot to extend your Spring Boot microservice with stream analytics capabilities
