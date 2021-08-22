@@ -4,7 +4,7 @@ spring:
     name: "spring-boot-kafkastreams"
 
   kafka:
-    bootstrap-servers: dataplatform:9092
+    bootstrap-servers: ${DATAPLATFORM_IP}:9092
     streams:
       application-id: ${spring.application.name}
       client-id: ${spring.application.name}-stream

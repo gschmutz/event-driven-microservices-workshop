@@ -99,7 +99,7 @@ spring:
     name: "spring-boot-kafkastreams"
 
   kafka:
-    bootstrap-servers: dataplatform:9092
+    bootstrap-servers: ${DATAPLATFORM_IP}:9092
     streams:
       application-id: ${spring.application.name}
       client-id: ${spring.application.name}-stream
@@ -120,6 +120,20 @@ For the IP address of the Kafka cluster we refer to an environment variable, whi
 
 ```bash
 export DATAPLATFORM_IP=nnn.nnn.nnn.nnn
+```
+
+## Build & Run the application
+
+First lets build the application:
+
+```bash
+mvn package -Dmaven.test.skip=true
+```
+
+Now let's run the application
+
+```bash
+mvn spring-boot:run
 ```
 
 ## Use Console to test the application
