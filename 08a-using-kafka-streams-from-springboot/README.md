@@ -2,7 +2,7 @@
 
 In this workshop we will learn how to process messages using the [KafkaStreams](https://kafka.apache.org/documentation/streams/) library from Spring Boot. 
 
-We will create a Spring Boot application and implememt the same basic processor from Workshop 7 which consumes messages from a topic, processes them and produces the result into a new topic. We will be using the High-Level DSL.
+We will create a Spring Boot application and implememt the same basic processor from Workshop 8 which consumes messages from a topic, processes them and produces the result into a new topic. We will be using the High-Level DSL.
 
 ## Create the Spring Boot Project
 
