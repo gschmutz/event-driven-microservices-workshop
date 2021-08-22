@@ -1,6 +1,5 @@
 package com.trivads.kafkaws.kstream.simple;
 
-import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
@@ -9,7 +8,9 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Printed;
 
-class KafkaStreamsRunnerDSL {
+import java.util.Properties;
+
+public class KafkaStreamsRunnerDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology

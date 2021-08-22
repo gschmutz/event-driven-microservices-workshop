@@ -144,7 +144,7 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Printed;
 
-class KafkaStreamsRunnerDSL {
+public class KafkaStreamsRunnerDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -200,16 +200,16 @@ kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P
 
 All the values produced should arrive on the consumer in uppercase.
 
-## Aggregating Values 
+## Counting Values 
 
 Now let's use Kafka Streams to perform some stateful operations. We will group the messages by key and count the number of messages per key over 60 seconds.
 
-Create a new Java package `com.trivads.kafkaws.kstream.aggregation` and in it a Java class `KafkaStreamsRunnerDSL`. 
+Create a new Java package `com.trivads.kafkaws.kstream.count` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.aggregation;
+package com.trivads.kafkaws.kstream.count;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -223,7 +223,7 @@ import java.util.Properties;
 
 import static org.apache.kafka.streams.kstream.Suppressed.BufferConfig.unbounded;
 
-class KafkaStreamsRunnerDSL {
+public class KafkaStreamsRunnerCountDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -244,11 +244,12 @@ class KafkaStreamsRunnerDSL {
 
         final Serde<String> stringSerde = Serdes.String();
         final Serde<Long> longSerde = Serdes.Long();
-        counts.toStream().map((k,v) -> new KeyValue<>(k.toString(), v)).to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
+                .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
         
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "aggregation");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -294,11 +295,134 @@ D,DDD
 within a single minute. After a minute the output from the consumer should be similar to the one shown below
 
 ```bash
-[A@1629062820000/1629062880000],3
-[D@1629062820000/1629062880000],2
-[B@1629062820000/1629062880000],3
-[E@1629062820000/1629062880000],1
+B : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],2
+D : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],2
+E : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],1
+% Reached end of topic test-kstream-output-topic [4] at offset 3
+A : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],2
+% Reached end of topic test-kstream-output-topic [1] at offset 3
+C : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],1
 ```
+
+## Aggregating Values 
+
+Now let's use Kafka Streams to perform antoher stateful operations. We will group the messages by key and aggregate (create a sum of the values) the values of the messages per key over 60 seconds.
+
+Create a new Java package `com.trivads.kafkaws.kstream.aggregate` and in it a Java class `KafkaStreamsRunnerAggregateDSL`. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivads.kafkaws.kstream.aggregate;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.state.WindowStore;
+
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Properties;
+
+public class KafkaStreamsRunnerAggregateDSL {
+
+    public static void main(String[] args) {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<String, String> stream = builder.stream("test-kstream-input-topic");
+
+        // transform the value from String to Long (this is necessary as from the console you can only produce String)
+        KStream<String, Long> transformed = stream.mapValues(v -> Long.valueOf(v));
+
+        // group by key
+        KGroupedStream<String, Long> grouped = transformed.groupByKey();
+
+        // create a tumbling window of 60 seconds
+        TimeWindows tumblingWindow =
+                TimeWindows.of(Duration.ofSeconds(60));
+
+        // sum the values over the tumbling window of 60 seconds
+        KTable<Windowed<String>, Long> sumOfValues = grouped
+                .windowedBy(tumblingWindow)
+                .aggregate(
+                        () -> 0L,    /* initializer */
+                        (aggKey, newValue, aggValue) -> aggValue + newValue, /* adder */
+                        Materialized.<String, Long, WindowStore<Bytes, byte[]>>as("time-windowed-aggregated-stream-store") /* state store name */
+                                .withValueSerde(Serdes.Long())
+                );
+
+        // print the sumOfValues stream
+        sumOfValues.toStream().print(Printed.<Windowed<String>,Long>toSysOut().withLabel("sumOfValues"));
+
+        // publish the sumOfValues stream
+        final Serde<String> stringSerde = Serdes.String();
+        final Serde<Long> longSerde = Serdes.Long();
+        sumOfValues.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
+                .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+        
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+
+        // build the topology and start streaming
+        KafkaStreams streams = new KafkaStreams(builder.build(), config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and then first run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic -s value=q -o end -f "%k,%s\n"
+```
+
+with that in place, in 2nd terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, where the value has to be a numeric value, such as
+
+```bash
+A,1
+A,2
+B,10
+B,2
+C,3
+D,5
+E,6
+D,9
+```
+
+within a single minute. After a minute the output from the consumer should be similar to the one shown below
+
+```bash
+E : 2021-08-22T16:53+02:00[Europe/Zurich] to 2021-08-22T16:54+02:00[Europe/Zurich],6
+A : 2021-08-22T16:53+02:00[Europe/Zurich] to 2021-08-22T16:54+02:00[Europe/Zurich],3
+D : 2021-08-22T16:53+02:00[Europe/Zurich] to 2021-08-22T16:54+02:00[Europe/Zurich],14
+C : 2021-08-22T16:53+02:00[Europe/Zurich] to 2021-08-22T16:54+02:00[Europe/Zurich],3
+B : 2021-08-22T16:53+02:00[Europe/Zurich] to 2021-08-22T16:54+02:00[Europe/Zurich],12
+```
+
+We can see that the values have been summed up by key.
 
 ## Using Custom State 
 
@@ -306,7 +430,7 @@ We can also run our own state store from Kafka Streams. For that we basically co
 
 In this simple implementation we are again using the message key as the grouping criteria and concat all the values we got since the beginning and return the new value as part of the new message. Both the key and the value are serialized as `String`.
 
-Create a new Java package `com.trivads.kafkaws.kstream.customstate` and in it a Java class `KafkaStreamsRunnerDSL`. 
+Create a new Java package `com.trivads.kafkaws.kstream.customstate` and in it a Java class `KafkaStreamsRunnerCustomStateDSL`. 
 
 Add the following code for the implemenation
 
@@ -328,7 +452,7 @@ import org.apache.kafka.streams.state.Stores;
 
 import java.util.Properties;
 
-class KafkaStreamsRunnerDSL {
+public class KafkaStreamsRunnerCustomStateDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -467,7 +591,7 @@ B,111,222,333
 
 Create a new Java package `com.trivads.kafkaws.kstream` and in it a Java class `KafkaStreamsRunnerDSL`. 
 
-Add the following code for the implemenation
+Add the following code for the implemenation of lgoic using the Processory API
 
 ```java
 package com.trivads.kafkaws.kstream;
@@ -507,6 +631,8 @@ public class KafkaStreamsRunnerProcessorAPI {
     }
 }
 ```
+
+Create the ChangeCaseProcessor which implements the `Processor` interface.
 
 ```java
 package com.trivads.kafkaws.kstream;

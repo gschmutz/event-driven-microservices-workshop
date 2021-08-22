@@ -1,20 +1,18 @@
-package com.trivads.kafkaws.kstream.aggregation;
+package com.trivads.kafkaws.kstream.count;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.Properties;
 
-import static org.apache.kafka.streams.kstream.Suppressed.BufferConfig.unbounded;
-
-class KafkaStreamsRunnerDSL {
+public class KafkaStreamsRunnerCountDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -35,11 +33,12 @@ class KafkaStreamsRunnerDSL {
 
         final Serde<String> stringSerde = Serdes.String();
         final Serde<Long> longSerde = Serdes.Long();
-        counts.toStream().map((k,v) -> new KeyValue<>(k.toString(), v)).to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
+                .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "aggregation");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
