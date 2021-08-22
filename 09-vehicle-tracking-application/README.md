@@ -405,7 +405,7 @@ docker exec -ti kafkacat kafkacat -b kafka-1 -t vehicle_tracking_refined -s avro
 You can use the Schema Registry UI on <http://dataplatform:28102> to view the Avro Schema created by ksqlDB.
 
 
-**Note:** You can shortcut this workshop here by skipping the integration of System B and jump directly to 
+**Note:** You can shortcut this workshop here by skipping the integration of System B and jump directly to [Step 5](https://github.com/gschmutz/event-driven-microservices-workshop/tree/main/09-vehicle-tracking-application#step-5---pull-query-on-vehicle-tracking-info-device-shadow).
 
 ## Step 3 - Integrate System B
 
@@ -506,10 +506,15 @@ In ksqlDB suche queries are called *pull queries*, in contrast to the streaming 
 So let's do a `SELECT` on the stream, restricting on the `vehicleId` without an `EMIT CHANGES`
 
 ``` sql
-SELECT * FROM vehicle_tracking_refined_s WHERE vehicleId = 42;
+SELECT * FROM vehicle_tracking_refined_s WHERE vehicleId = '42';
 ```
 
-We get the following error from ksqlDB: `Pull queries are not supported on streams.`. 
+We get the following quite long error from ksqlDB: 
+
+```
+Pull queries are not supported on streams. See https://cnfl.io/queries for more info.
+Add EMIT CHANGES if you intended to issue a push query.
+``` 
 
 Pull queries only work on Materialized Views, which are the `Table`s and not the `Stream`s. So can we create a table which delivers the information?
 
@@ -560,6 +565,9 @@ So to test the pull query, we have to switch to a string, otherwise an error is 
 ``` sql
 SELECT * FROM vehicle_tracking_refined_t WHERE vehicleId = '42';
 ```
+
+if you see no result, then check if in fact the vehicle with id `42` is currently producing any data. You can do that either directly on the MQTT client or using ksqlDB. 
+
 
 But we could also change the `CREATE TABLE` statement to CAST the `vehicleId` into a `BIGINT`:
 
@@ -631,21 +639,140 @@ We can also see the same information by directly getting the data from the under
 docker exec -ti kafkacat kafkacat -b kafka-1 -t problematic_driving -s avro -r http://schema-registry-1:8081
 ```
 
-## Demo 7 - Materialize Driver Information ("static information")
+The same logic can also be implemented using Kafka Streams. In the folder `java` you will find the Kafka Streams project `kafka-streams-vehicle-tracking` with the implementation. The value we consume from the `vehicle_tracking_refined` topic is serialized as Avro. Therefore we configure Kafka Streams to use the `SpecificAvroSerde`.
 
-In this part of the demo, we are integrating the `driver` information from the Dispatching system into a Kafka topic, so it is available for enrichments of data streams. 
+```java
+package com.trivadis.kafkastreams;
 
-, which we created and populated in the [Preparation](0-Preparation.md) section.
+import com.trivadis.avro.VehicleTrackingRefined;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
+import org.apache.commons.cli.*;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.KStream;
+
+import java.util.Properties;
+
+public class DetectProblematicDriving {
+
+	static final String VEHICLE_TRACKING_REFINED_STREAM = "vehicle_tracking_refined";
+	static final String PROBLEMATIC_DRIVING_STREAM = "problematic_driving-kstreams";
+
+	public static void main(final String[] args) {
+		final String applicationId = "test";
+		final String clientId = "test";
+		final String bootstrapServer = "dataplatform:9092";
+		final String schemaRegistryUrl = "http://dataplatform:8081";
+		final boolean cleanup = false;
+		final String stateDirPath = "C:\\tmp\\kafka-streams";
+
+		final KafkaStreams streams = buildFeed(applicationId, clientId, bootstrapServer, schemaRegistryUrl, stateDirPath);
+
+		if (cleanup) {
+			streams.cleanUp();
+		}
+		streams.start();
+
+		// Add shutdown hook to respond to SIGTERM and gracefully close Kafka Streams
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				streams.close();
+			}
+		}));
+	}
+
+	private static KafkaStreams buildFeed(final String applicationId, final String clientId, final String bootstrapServers, final String schemaRegistryUrl,
+										  final String stateDir) {
+
+		final Properties streamsConfiguration = new Properties();
+
+		// Give the Streams application a unique name. The name must be unique in the
+		// Kafka cluster
+		// against which the application is run.
+		streamsConfiguration.put(StreamsConfig.APPLICATION_ID_CONFIG, applicationId);
+		streamsConfiguration.put(StreamsConfig.CLIENT_ID_CONFIG, clientId);
+
+		// Where to find Kafka broker(s).
+		streamsConfiguration.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+
+		// Where to find the Confluent schema registry instance(s)
+		streamsConfiguration.put(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+
+		// Specify default (de)serializers for record keys and for record values.
+		streamsConfiguration.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
+		streamsConfiguration.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, SpecificAvroSerde.class);
+		streamsConfiguration.put(StreamsConfig.STATE_DIR_CONFIG, stateDir);
+		streamsConfiguration.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+		// Records should be flushed every 10 seconds. This is less than the default
+		// in order to keep this example interactive.
+		streamsConfiguration.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 10 * 1000);
+
+		// If Confluent monitoring interceptors are on the classpath,
+		// then the producer and consumer interceptors are added to the
+		// streams application.
+		// MonitoringInterceptorUtils.maybeConfigureInterceptorsStreams(streamsConfiguration);
 
 
+		final StreamsBuilder builder = new StreamsBuilder();
+
+		// read the source stream (keyed by objectId)
+		final KStream<String, VehicleTrackingRefined> vehicleTracking = builder.stream(VEHICLE_TRACKING_REFINED_STREAM);
+
+		vehicleTracking.peek((k,v) -> System.out.println("vehicleTracking.peek(...) : " + k + " : " + v));
+
+		// filter out all events where eventType equals "Normal"
+		final KStream<String, VehicleTrackingRefined> vehicleTrackingFiltered = vehicleTracking.filterNot((k,v) -> "Normal".equals (v.getEVENTTYPE().toString()));
+
+		// Send the Matches to the Kafka Topic
+		vehicleTrackingFiltered.to(PROBLEMATIC_DRIVING_STREAM);
+
+		// read the driver
+		//final KTable<String, Driver> driver = builder.table(DRIVER_STREAM);
+
+		// Left Join Positions Mecomo Raw with Barge to get the barge id
+		//KStream<String, PositionMecomo> positionsMecomo  =  positionsMecomoRaw.leftJoin(barge,
+		//		(leftValue, rightValue) -> createFrom(leftValue, (rightValue != null ? rightValue.getId() : -1) ),
+		//		Joined.<String, PositionMecomoRaw, Barge>keySerde(Serdes.String())
+		//);
+
+		return new KafkaStreams(builder.build(), streamsConfiguration);
+	}
+}
+```
+
+To not give any conflicts with the ksqlDB version, the Kafka Streams implementation publishes to its own topic `problematic_driving-kstreams`. So let's create that first
+
+``` bash
+docker exec -it kafka-1 kafka-topics --zookeeper zookeeper-1:2181 --create --topic problematic_driving-kstreams --partitions 8 --replication-factor 3
+```
+
+Now you can run the Kafka Streams application and you should see the problematic driving in the `problematic_driving-kstreams` topic
+
+``` bash
+docker exec -ti kafkacat kafkacat -b kafka-1 -t problematic_driving-kstreams -s avro -r http://schema-registry-1:8081 -o end -q
+```
+
+## Step 7 - Materialize Driver Information ("static information")
+
+In this part of the demo, we are integrating the `driver` information from the Dispatching system into a Kafka topic, so it is available for enrichments of data streams.  
 
 ![Alt Image Text](./images/use-case-step-7.png "Demo 1 - KsqlDB")
 
-First let's register the Kafka topic `logisticsdb_driver`. 
+We will use the Kafka Connect [JDBC Connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc) for periodically retrieving the data from the database table and publish it to the Kafka topic `logisticsdb_driver`. Instead of configuring the connector through the REST API, as we have seen before with the MQTT connector, we will use the ksqlDB integration with the [CREATE CONNECTOR](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/create-connector/) command.
+
+First let's create the Kafka topic `logisticsdb_driver`.
 
 ```bash
 docker exec -it kafka-1 kafka-topics --zookeeper zookeeper-1:2181 --create --topic logisticsdb_driver --partitions 8 --replication-factor 3 --config cleanup.policy=compact --config segment.ms=100 --config delete.retention.ms=100 --config min.cleanable.dirty.ratio=0.001
 ```
+
+Now in the ksqlDB shell configure the following settings
 
 ``` sql
 set 'commit.interval.ms'='5000';
@@ -653,7 +780,7 @@ set 'cache.max.bytes.buffering'='10000000';
 set 'auto.offset.reset'='earliest';
 ```
 
-[CREATE CONNECTOR](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/create-connector/)
+and create the connector 
 
 ``` sql
 DROP CONNECTOR jdbc_logistics_sc;
@@ -663,7 +790,7 @@ DROP CONNECTOR jdbc_logistics_sc;
 CREATE SOURCE CONNECTOR jdbc_logistics_sc WITH (
     "connector.class"='io.confluent.connect.jdbc.JdbcSourceConnector',
     "tasks.max" = '1',
-    "connection.url" = 'jdbc:postgresql://postgresql/demodb?user=demo&password=abc123!',
+    "connection.url" = 'jdbc:postgresql://postgresql/shipment?user=mio&password=mio',
     "mode" = 'timestamp',
     "timestamp.column.name" = 'last_update',
     "schema.pattern" = 'logistics_db',
@@ -683,11 +810,19 @@ CREATE SOURCE CONNECTOR jdbc_logistics_sc WITH (
     );
 ```
 
-we can see that all the drivers from the `driver` table have been produced into the `logisticsdb_driver` topic:
+we can see that all the drivers from the `driver` table have been produced into the `logisticsdb_driver` topic by using `kafkacat`:
 
 ```bash
-docker exec -ti kafkacat kafkacat -b kafka-1 -t logisticsdb_driver -o beginning
+docker exec -ti kafkacat kafkacat -b kafka-1 -t logisticsdb_driver -o beginning -q
 ```
+
+you can also use the `print` command from ksqlDB instead
+
+```sql
+print logisticsdb_driver
+```
+
+back in the ksqlDB console, create a ksqlDB table on the topic
 
 ``` sql
 DROP TABLE IF EXISTS driver_t;
@@ -708,10 +843,10 @@ SELECT * FROM driver_t EMIT CHANGES;
 Now perform an update on one of the drivers in the PostgreSQL database (original source):
 
 ```sql
-docker exec -ti postgresql psql -d demodb -U demo -c "UPDATE logistics_db.driver SET available = 'N', last_update = CURRENT_TIMESTAMP  WHERE id = 11"
+docker exec -ti postgresql psql -d shipment -U mio -c "UPDATE logistics_db.driver SET available = 'N', last_update = CURRENT_TIMESTAMP  WHERE id = 11"
 ```
 
-## Demo 8 - Join with Driver ("static information")
+## Step 8 - Join with Driver ("static information")
 
 
 ![Alt Image Text](./images/use-case-step-8.png "Demo 1 - KsqlDB")
@@ -753,8 +888,7 @@ we can use `kafkacat` to show the data stream in the newly created Kafka topic `
 docker exec -ti kafkacat kafkacat -b kafka-1 -t problematic_driving_and_driver -s avro -r http://schema-registry-1:8081
 ```
 
-
-## Demo 9 - Aggregate Driving Behaviour
+## Step 9 - Aggregate Driving Behaviour
 
 ![Alt Image Text](./images/use-case-step-9.png "Demo 1 - KsqlDB")
 
@@ -784,8 +918,6 @@ WINDOW HOPPING (SIZE 60 minutes, ADVANCE BY 30 minutes)
 GROUP BY eventType;
 ```
 
-
-
 ```
 SELECT TIMESTAMPTOSTRING(WINDOWSTART,'yyyy-MM-dd HH:mm:SS','CET') wsf
 , TIMESTAMPTOSTRING(WINDOWEND,'yyyy-MM-dd HH:mm:SS','CET') wef
@@ -799,60 +931,13 @@ EMIT CHANGES;
 ```
 
 
-## Demo 10 - Materialize Shipment Information ("static information")
+## Step 10 - Materialize Shipment Information ("static information")
 
 ![Alt Image Text](./images/use-case-step-10.png "Demo 1 - KsqlDB")
 
-Create the MySQL table with shipment information:
 
 ``` bash
-≈
-```
-
-```sql
-CREATE USER 'debezium'@'%' IDENTIFIED WITH mysql_native_password BY 'dbz';
-CREATE USER 'replicator'@'%' IDENTIFIED BY 'replpass';
-GRANT SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT  ON *.* TO 'debezium';
-GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO 'replicator';
-
-GRANT SELECT, INSERT, UPDATE, DELETE ON sample.* TO sample;
-
-USE sample;
-
-DROP TABLE shipment;
-
-CREATE TABLE shipment (
-                id INT PRIMARY KEY,
-                vehicle_id INT,
-                target_wkt VARCHAR(2000),
-                create_ts timestamp DEFAULT CURRENT_TIMESTAMP,
-                update_ts timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-                
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (1,11, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))');     
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (2, 42, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))');         
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (3, 12, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))'); 
-                
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (4, 13, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))'); 
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (5, 14, 'POLYGON ((-91.0986328125 38.839707613545144, -90.87890625 38.238180119798635, -90.263671875 38.09998264736481, -89.75830078125 38.34165619279595, -89.36279296875 38.66835610151506, -89.5166015625 38.95940879245423, -89.93408203124999 39.11301365149975, -90.52734374999999 39.18117526158749, -91.0986328125 38.839707613545144))'); 
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (6, 15, 'POLYGON ((-91.0986328125 38.839707613545144, -90.87890625 38.238180119798635, -90.263671875 38.09998264736481, -89.75830078125 38.34165619279595, -89.36279296875 38.66835610151506, -89.5166015625 38.95940879245423, -89.93408203124999 39.11301365149975, -90.52734374999999 39.18117526158749, -91.0986328125 38.839707613545144))'); 
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (7, 32, 'POLYGON ((-91.0986328125 38.839707613545144, -90.87890625 38.238180119798635, -90.263671875 38.09998264736481, -89.75830078125 38.34165619279595, -89.36279296875 38.66835610151506, -89.5166015625 38.95940879245423, -89.93408203124999 39.11301365149975, -90.52734374999999 39.18117526158749, -91.0986328125 38.839707613545144))'); 
-
-INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (8, 48, 'POLYGON ((-91.0986328125 38.839707613545144, -90.87890625 38.238180119798635, -90.263671875 38.09998264736481, -89.75830078125 38.34165619279595, -89.36279296875 38.66835610151506, -89.5166015625 38.95940879245423, -89.93408203124999 39.11301365149975, -90.52734374999999 39.18117526158749, -91.0986328125 38.839707613545144))'); 
-```
-
-```sql
-UPDATE shipment SET target_wkt = 'POLYGON ((-91.0986328125 38.839707613545144, -90.87890625 38.238180119798635, -90.263671875 38.09998264736481, -89.75830078125 38.34165619279595, -89.36279296875 38.66835610151506, -89.5166015625 38.95940879245423, -89.93408203124999 39.11301365149975, -90.52734374999999 39.18117526158749, -91.0986328125 38.839707613545144))', update_ts = CURRENT_TIMESTAMP;
-```
-
-
-```bash
-docker exec -it kafka-1 kafka-topics --zookeeper zookeeper-1:2181 --create --topic sample.sample.shipment --partitions 8 --replication-factor 3 --config cleanup.policy=compact --config segment.ms=100 --config delete.retention.ms=100 --config min.cleanable.dirty.ratio=0.001
+docker exec -it kafka-1 kafka-topics --zookeeper zookeeper-1:2181 --create --topic sample.sample.shipment --partitions 8 --replication-factor 3
 ```
 
 
@@ -897,7 +982,7 @@ CREATE TABLE IF NOT EXISTS shipment_t (id VARCHAR PRIMARY KEY,
 SELECT * FROM shipment_t EMIT CHANGES;
 ```
 
-## Demo 11 - Geo-Fencing for "near" destination
+## Step 11 - Geo-Fencing for "near" destination
 
 ![Alt Image Text](./images/use-case-step-11.png "Demo 1 - KsqlDB")
 
@@ -938,116 +1023,10 @@ EMIT CHANGES;
 ```
 
 
-
 ```sql
 SELECT vehicleId, geo_fence(array_lag(collect_list(geo_fence(latitude, longitude, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))')),1), array_lag(collect_list(geo_fence(latitude, longitude, 'POLYGON ((-90.626220703125 38.80118939192329, -90.62347412109375 38.460041065720446, -90.06866455078125 38.436379603, -90.04669189453125 38.792626957868904, -90.626220703125 38.80118939192329))')),0)) status FROM vehicle_tracking_refined_s group by vehicleId EMIT CHANGES;
 ```
 
-## Demo 12 - Dashboard Integration (wip)
-
-First let's create a stream backed by the `dashboard` topic, which will be the channel to the Tipboard dashboard solution. 
-
-``` sql
-DROP STREAM IF EXISTS dashboard_s;
-```
-
-``` sql
-CREATE STREAM IF NOT EXISTS dashboard_s
-  (ROWKEY BIGINT KEY,
-   tile VARCHAR,
-   key VARCHAR, 
-   data VARCHAR)
-  WITH (kafka_topic='dashboard'
-  		, partitions=1
-       , value_format='JSON');
-```
-
-
-Now import the StreamSets connector between this new stream and the Tipboard dashboard.
-
-### Problematic Drivers
-
-```sql
-SELECT first_name, last_name, eventType
-FROM problematic_driving_and_driver_s
-EMIT CHANGES;
-```
-
-```
-CREATE STREAM tipboard_text_s 
-WITH (value_format = 'JSON', kafka_topic = 'tipboard_text_s', partitions=1)
-AS
-SELECT driverId AS ROWKEY
-	   , 'text' AS tile
-		, 'tweet' AS key
-		, tipboard_text(concat(first_name, ' ', last_name, ' ', eventType)) AS data
-FROM problematic_driving_and_driver_s
-EMIT CHANGES;
-```
-
-### Geo Fence
-
-``` sql
-DROP STREAM geo_fence_status_s;
-
-CREATE STREAM geo_fence_status_s (vehicleId STRING KEY
-												, status STRING)
-WITH (kafka_topic='GEO_FENCE_STATUS_T'
-					, partitions=8
-					, value_format='AVRO');
-```
-
-```
-INSERT INTO dashboard_s
-SELECT CAST (vehicleId AS BIGINT) AS ROWKEY
-		, 'text' AS tile
-		, 'tweet' AS key
-		, tipboard_text(concat('Vehicle ', vehicleId, ' is near its destination')) AS data
-FROM geo_fence_status_s
-WHERE status = 'ENTERING'
-PARTITION BY CAST (vehicleId AS BIGINT)
-EMIT CHANGES;
-```
-
-### Pie Chart
-
-``` sql
-DROP STREAM event_type_by_1hour_tumbl_s;
-
-CREATE STREAM event_type_by_1hour_tumbl_s (eventType STRING KEY
-												, winstart BIGINT
-												, winend BIGINT
-												, nof BIGINT)
-WITH (kafka_topic='event_type_by_1hour_tumbl_t'
-					, partitions=8
-					, value_format='AVRO'
-					, window_type='Tumbling'
-					, window_size='60 minutes');
-
-SELECT winstart
-		, collect_list(eventType) 
-		, collect_list(nof) 
-FROM  event_type_by_1hour_tumbl_s 
-GROUP BY winstart
-EMIT CHANGES;
-
-SELECT winstart, as_map(collect_list(eventType), collect_list(nof) ) as counts
-FROM  event_type_by_1hour_tumbl_s 
-GROUP BY winstart
-EMIT CHANGES;
-
-DROP TABLE tipboard_pie_t DELETE TOPIC;
-
-CREATE TABLE tipboard_pie_t 
-WITH (value_format = 'JSON', kafka_topic = 'tipboard_pie_t', partitions=1)
-AS
-SELECT winstart
-		, 'pie_chart' AS tile
-		, 'pie' AS key
-		, tipboard_pie_chart('Last Hour', as_map(collect_list(eventType), collect_list(nof) )) as data
-FROM  event_type_by_1hour_tumbl_s 
-GROUP BY winstart
-EMIT CHANGES;
 
 
 
