@@ -2,7 +2,7 @@
 
 In this workshop we will learn how to process messages using the [Azkarra Streams](https://www.azkarrastreams.io) framework for Kafka Streams. Azkarra Streams is a lightweight java framework to make it easy to develop, deploy and manage streaming microservices based on Apache Kafka Streams.(Azkarra is Basque words meaning “Fast”).
 
-We will create an Azkarra Streams application and implememt the same basic processor from Workshop 7 which consumes messages from a topic, processes them and produces the result into a new topic. We will be using the Kafka Streams High-Level DSL.
+We will create an Azkarra Streams application and implememt the same basic processor from Workshop 8 which consumes messages from a topic, processes them and produces the result into a new topic. We will be using the Kafka Streams High-Level DSL.
 
 ## Setting up a Maven Project
 
