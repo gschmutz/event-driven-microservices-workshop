@@ -122,14 +122,22 @@ INSERT INTO shipment (id, vehicle_id, target_wkt)  VALUES (8, 48, 'POLYGON ((-91
 For simulating vehicle tracking data, we are going to use a Java program (adapted from Hortonworks) and maintained [here](https://github.com/TrivadisBDS/various-bigdata-prototypes/tree/master/streaming-sources/iot-truck-simulator/impl).
 
 The simulator can produce data to various targets, such as **Kafka**, **MQTT** or **Files**. These two options are shown below. 
-	
-Now let's produce the truck events to the MQTT broker running on port 1883. In a terminal window run the following command:
+
+---
+**Note:** You can shortcut this workshop here by skipping step 1 and publishing directly to Kafka instead of MQTT. In that case perform use the following command instead of the one below `docker run trivadis/iot-truck-simulator '-s' 'KAFKA' '-h' $DOCKER_HOST_IP '-p' '9092' '-f' 'JSON' '-vf' '1-49'` and skip to [Step 2](https://github.com/gschmutz/event-driven-microservices-workshop/tree/main/09-vehicle-tracking-application#step-2---using-ksql-to-refine-the-data).
+
+---	
+
+To produce the truck events to the MQTT broker running on port 1883, run the following command from a terminal window:
 
 ``` bash
 docker run trivadis/iot-truck-simulator '-s' 'MQTT' '-h' $DOCKER_HOST_IP '-p' '1883' '-f' 'JSON' '-vf' '1-49'
 ```
 
 Leave this running in the terminal window. 
+
+
+
 
 ## Step 1 - Consume Vehicle Tracking messages from MQTT and send to Kafka
 
@@ -404,8 +412,10 @@ docker exec -ti kafkacat kafkacat -b kafka-1 -t vehicle_tracking_refined -s avro
 
 You can use the Schema Registry UI on <http://dataplatform:28102> to view the Avro Schema created by ksqlDB.
 
-
+---
 **Note:** You can shortcut this workshop here by skipping the integration of System B and jump directly to [Step 5](https://github.com/gschmutz/event-driven-microservices-workshop/tree/main/09-vehicle-tracking-application#step-5---pull-query-on-vehicle-tracking-info-device-shadow).
+
+---
 
 ## Step 3 - Integrate System B
 
