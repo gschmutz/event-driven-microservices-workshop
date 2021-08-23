@@ -597,7 +597,7 @@ SELECT * FROM vehicle_tracking_refined_t WHERE vehicleId = 42;
 
 ## Step 6 - Investigate Driving behaviour
 
-In this part we will be using ksqlDB and as an alternative solution Kafka Streams to analyse the data in the refined topic `vehicle_tracking_refined`.
+In this part of the workshop we will be using ksqlDB and as an alternative solution Kafka Streams to analyse the data in the refined topic `vehicle_tracking_refined`.
 
 ![Alt Image Text](./images/use-case-step-6.png "Demo 1 - KsqlDB")
 
@@ -760,11 +760,13 @@ docker exec -ti kafkacat kafkacat -b kafka-1 -t problematic_driving-kstreams -s 
 
 ## Step 7 - Materialize Driver Information ("static information")
 
-In this part of the demo, we are integrating the `driver` information from the Dispatching system into a Kafka topic, so it is available for enrichments of data streams.  
+In this part of the workshop, we are integrating the `driver` information from the Dispatching system into a Kafka topic, so it is available for enrichments of data streams.  
 
 ![Alt Image Text](./images/use-case-step-7.png "Demo 1 - KsqlDB")
 
-We will use the Kafka Connect [JDBC Connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc) for periodically retrieving the data from the database table and publish it to the Kafka topic `logisticsdb_driver`. Instead of configuring the connector through the REST API, as we have seen before with the MQTT connector, we will use the ksqlDB integration with the [CREATE CONNECTOR](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/create-connector/) command.
+We will use the Kafka Connect [JDBC Source Connector](https://www.confluent.io/hub/confluentinc/kafka-connect-jdbc) for periodically retrieving the data from the database table and publish it to the Kafka topic `logisticsdb_driver`. The connector is pre-installed as part of the dataplatform.
+
+Instead of configuring the connector through the REST API, as we have seen before with the MQTT connector, we will use the ksqlDB integration with the [CREATE CONNECTOR](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/create-connector/) command.
 
 First let's create the Kafka topic `logisticsdb_driver`.
 
@@ -848,10 +850,11 @@ docker exec -ti postgresql psql -d shipment -U mio -c "UPDATE logistics_db.drive
 
 ## Step 8 - Join with Driver ("static information")
 
+In this part of the workshop, we are joining the `driver` ksqlDB table with the `problematic_driving_s` ksqlDB stream to enrich it with valuable information.
 
 ![Alt Image Text](./images/use-case-step-8.png "Demo 1 - KsqlDB")
 
-Now with the ksqlDB table in place, let's join it with the `problematic_driving_s` ksqlDB stream to enrich it with driver information available in the `driver_t` table (first_name, last_name and availability):
+With the ksqlDB table in place, let's use join statement to enrich the `problematic_driving_s` ksqlDBit with information from the `driver_t` table (first_name, last_name and availability):
 
 ``` sql
 SELECT pd.driverId, d.first_name, d.last_name, d.available, pd.vehicleId, pd.routeId, pd.eventType 
@@ -861,7 +864,7 @@ ON pd.driverId  = d.id
 EMIT CHANGES;
 ```
 
-We can see the enriched stream live in the CLI.
+We can see that the join looks like it has been taken from an RDMBS-based system. The enriched stream can be seen appearing in live on the ksqlDB CLI.
 
 How can we make that enriched dataset (data stream) available in a more permanent fashion? We do that by creating a new Stream based on the SELECT statement just issued. Stop the query by entering `CTRL-C` and execute the following statement:
 
@@ -890,13 +893,15 @@ docker exec -ti kafkacat kafkacat -b kafka-1 -t problematic_driving_and_driver -
 
 ## Step 9 - Aggregate Driving Behaviour
 
+In this part of the workshop, we are using the aggregate operators `count` to perform aggregations over time windows. 
+
 ![Alt Image Text](./images/use-case-step-9.png "Demo 1 - KsqlDB")
+
+The first one is a tumbling window of 1 hour
 
 ``` sql
 DROP TABLE IF EXISTS event_type_by_1hour_tumbl_t DELETE TOPIC;
-```
 
-``` sql
 CREATE TABLE event_type_by_1hour_tumbl_t AS
 SELECT windowstart AS winstart
 	, windowend 	AS winend
@@ -907,7 +912,11 @@ WINDOW TUMBLING (SIZE 60 minutes)
 GROUP BY eventType;
 ```
 
+The second one is a tumbling window of 1 hour with a slide of 30 minutes.
+
 ``` sql
+DROP TABLE IF EXISTS event_type_by_1hour_hopp_t DELETE TOPIC;
+
 CREATE TABLE event_type_by_1hour_hopp_t AS
 SELECT windowstart AS winstart
 	, windowend 	AS winend
@@ -917,6 +926,8 @@ FROM problematic_driving_s
 WINDOW HOPPING (SIZE 60 minutes, ADVANCE BY 30 minutes)
 GROUP BY eventType;
 ```
+
+If you are doing a select on the table, you can format the time elements of the time window as shown below
 
 ```
 SELECT TIMESTAMPTOSTRING(WINDOWSTART,'yyyy-MM-dd HH:mm:SS','CET') wsf
@@ -930,16 +941,23 @@ WHERE ws > UNIX_TIMESTAMP()-300001 and ws < UNIX_TIMESTAMP()- 240001
 EMIT CHANGES;
 ```
 
-
 ## Step 10 - Materialize Shipment Information ("static information")
+
+In this part of the workshop we are integrating the `shipment` information from the Shipment system into a Kafka topic, so it is available for anayltics. 
 
 ![Alt Image Text](./images/use-case-step-10.png "Demo 1 - KsqlDB")
 
+We will use the Kafka Connect [Debezium MySQL CDC Source Connector](https://www.confluent.io/hub/debezium/debezium-connector-mysql) to monitor and record all row-level changes in on the `shipment` database table and publish it to the Kafka topic `sample.sample.shipment` (implementation of the log-based change data capture). The connector is pre-installed as part of the dataplatform.
+
+We are again using the [CREATE CONNECTOR](https://docs.ksqldb.io/en/latest/developer-guide/ksqldb-reference/create-connector/) command for configuring the connector instead of the REST API.
+
+First let's create the new Kafka topic
 
 ``` bash
 docker exec -it kafka-1 kafka-topics --zookeeper zookeeper-1:2181 --create --topic sample.sample.shipment --partitions 8 --replication-factor 3
 ```
 
+Now we can create the connector
 
 ```sql
 DROP CONNECTOR debz_shipment_sc;
@@ -967,6 +985,13 @@ CREATE SOURCE CONNECTOR debz_shipment_sc WITH (
     );
 ```
 
+A `kafkacat` on the topic shows if it has worked
+
+``` bash
+docker exec -ti kafkacat kafkacat -b kafka-1 -t sample.sample.shipment -s avro -r http://schema-registry-1:8081 -q
+```
+
+Now let's create the corresponding ksqlDB table
 
 ``` sql
 DROP TABLE IF EXISTS shipment_t;
@@ -978,6 +1003,8 @@ CREATE TABLE IF NOT EXISTS shipment_t (id VARCHAR PRIMARY KEY,
         value_format='AVRO');
 ```
 
+And use a select to test that it is working
+
 ```sql
 SELECT * FROM shipment_t EMIT CHANGES;
 ```
@@ -985,6 +1012,10 @@ SELECT * FROM shipment_t EMIT CHANGES;
 ## Step 11 - Geo-Fencing for "near" destination
 
 ![Alt Image Text](./images/use-case-step-11.png "Demo 1 - KsqlDB")
+
+```sql
+show functions;
+```
 
 ```sql
 DROP TABLE IF EXISTS shipment_by_vehicle_t;
