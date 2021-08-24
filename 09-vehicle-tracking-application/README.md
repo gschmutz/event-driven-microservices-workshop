@@ -1021,7 +1021,11 @@ SELECT * FROM shipment_t EMIT CHANGES;
 
 ## Step 11 - Geo-Fencing for "near" destination
 
+In this part of the workshop we are using the `shipment` information to detect when a vehicle is near the destination of the shipment. 
+
 ![Alt Image Text](./images/use-case-step-11.png "Demo 1 - KsqlDB")
+
+For that we have implemented some additional user defined functions (UDFs) which can be sue din the same way as the built-in funcitons of ksqlDB.
 
 ```sql
 show functions;
