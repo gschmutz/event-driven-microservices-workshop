@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/05-working-with-avro-and-java.iml" filepath="$PROJECT_DIR$/.idea/05-working-with-avro-and-java.iml" />
+      <module fileurl="file://$PROJECT_DIR$/src/java-cloudevents-kafka/java-cloudevents-kafka.iml" filepath="$PROJECT_DIR$/src/java-cloudevents-kafka/java-cloudevents-kafka.iml" />
     </modules>
   </component>
 </project>

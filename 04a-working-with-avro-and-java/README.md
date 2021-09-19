@@ -174,7 +174,8 @@ log4j.appender.out.layout.ConversionPattern=[%30.30t] %-30.30c{1} %-5p %m%n
 log4j.throwableRenderer=org.apache.log4j.EnhancedThrowableRenderer
 ```
 ### Creating the necessary Kafka Topic 
-We will use the topic `test-java-topic` in the Producer and Consumer code below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
+
+We will use the topic `test-java-avro-topic` in the Producer and Consumer code below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
 
 In a terminal window, connect to the `kafka-1` container
 
@@ -190,12 +191,6 @@ kafka-topics --create \
 --partitions 8 \
 --topic test-java-avro-topic \
 --zookeeper zookeeper-1:2181
-```
-
-Cross check that the topic has been created.
-
-```
-kafka-topics --list --zookeeper zookeeper-1:2181
 ```
 
 This finishes the setup steps and our new project is ready to be used. Next we will start implementing the **Kafka Producer** which uses Avro for the serialization. 
@@ -403,7 +398,7 @@ You can see that kafkacat shows some special, non-printable characters. This is 
 So let's connect to the schema registry container:
 
 ```
-docker exec -ti streamingplatform_schema_registry_1 bash
+docker exec -ti schema-registry-1 bash
 ```
 
 And then invoke the `kafka-avro-console-consumer` similar to the "normal" consumer seen so far. 

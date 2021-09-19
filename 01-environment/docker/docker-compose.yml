@@ -9,6 +9,7 @@ networks:
     name: event-driven-microservices-workshop
 # enforce some dependencies
 # enforce some dependencies
+# Enable PostgreSQL or MySQL for MLflow server
 services:
   #  ================================== Zookeeper ========================================== #
   zookeeper-1:
@@ -138,11 +139,18 @@ services:
       - 8081:8081
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry-1
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka-1:19092,kafka-2:19093,kafka-3:19094
-      SCHEMA_REGISTRY_MASTER_ELIGIBILITY: 'true'
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+      SCHEMA_REGISTRY_GROUP_ID: schema-registry
+      SCHEMA_REGISTRY_LEADER_ELIGIBILITY: 'True'
+      SCHEMA_REGISTRY_MODE_MUTABILITY: 'True'
+      SCHEMA_REGISTRY_SCHEMA_COMPATIBILITY_LEVEL: backward
       SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
       SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_ORIGIN: '*'
       SCHEMA_REGISTRY_ACCESS_CONTROL_ALLOW_METHODS: GET,POST,PUT,OPTIONS
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: info
+      SCHEMA_REGISTRY_DEBUG: 'False'
     volumes:
       - ./data-transfer:/data-transfer
     restart: unless-stopped
@@ -273,8 +281,8 @@ services:
       # For Demo purposes: improve resource utilization and avoid timeouts
       KSQL_KSQL_STREAMS_NUM_STREAM_THREADS: 1
       KSQL_PRODUCER_ENABLE_IDEMPOTENCE: 'true'
-      KSQL_APPLICATION_ID: kafka-demo
-      KSQL_KSQL_SERVICE_ID: kafka-demo
+      KSQL_APPLICATION_ID: ksqldb-cluster
+      KSQL_KSQL_SERVICE_ID: ksqldb-cluster
       KSQL_HOST_NAME: ksqldb-server-1
       KSQL_LISTENERS: http://0.0.0.0:8088
       KSQL_BOOTSTRAP_SERVERS: kafka-1:19092,kafka-2:19093,kafka-3:19094
@@ -297,6 +305,7 @@ services:
     volumes:
       - ./data-transfer:/data-transfer
       - ./plugins/ksql:/etc/ksqldb/ext
+      - ./conf/ksqldb/etc/log4j.properties:/etc/ksqldb/log4j.properties
     restart: unless-stopped
   # Access the cli by running:
   # > docker exec -it ksqldb-cli ksql http://ksqldb-server-1:8088
@@ -310,19 +319,6 @@ services:
       - ./data-transfer:/data-transfer
     entrypoint: /bin/sh
     tty: true
-  #  ================================== Kafkacat  ========================================== #
-  kafkacat:
-    image: edenhill/kafkacat:1.6.0
-    container_name: kafkacat
-    hostname: kafkacat
-    volumes:
-      - ./data-transfer:/data-transfer
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        while [ 1 -eq 1 ];do sleep 60;done
-    restart: unless-stopped
   #  ================================== Schema Registry UI ========================================== #
   schema-registry-ui:
     image: landoop/schema-registry-ui:latest
@@ -467,7 +463,7 @@ services:
     restart: unless-stopped
   #  ================================== Redis ========================================== #
   redis-1:
-    image: bitnami/redis:6.0.9
+    image: bitnami/redis:6.2
     hostname: redis-1
     container_name: redis-1
     ports:
@@ -679,7 +675,7 @@ services:
     restart: unless-stopped
   #  ================================== markdown-viewer ========================================== #
   markdown-viewer:
-    image: minimum/markdown-web:latest
+    image: trivadis/markdown-web:latest
     container_name: markdown-viewer
     hostname: markdown-viewer
     labels:
