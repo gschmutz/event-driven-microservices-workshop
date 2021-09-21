@@ -178,7 +178,7 @@
       #
       # ===== Kafka UI ========
       #
-      KAFKA_UI_enable: false
+      KAFKA_UI_enable: true
       #
       # ===== Kafka Eagle ========
       #
