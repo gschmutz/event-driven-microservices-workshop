@@ -353,7 +353,7 @@ An other option for Windows is to run it as a Docker container as shown below.
 There is also a Docker container from Confluent which can be used to run **Kafkacat**
 
 ```bash
-docker run --tty --network kafkaworkshop_default edenhill/kafkacat:1.5.0 kafkacat
+docker run --tty --network event-driven-microservices-workshop edenhill/kafkacat:1.6.0 kafkacat
 ```
 
 If it is part of the Data Platform, then it can be executed "directly"
