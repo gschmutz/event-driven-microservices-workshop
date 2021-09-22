@@ -11,13 +11,6 @@
       ]
     },
     {
-      "name": "subject",
-      "type": [
-        "string",
-        "null"
-      ], "default":""
-    },
-    {
       "name": "message",
       "type": [
         "string",
