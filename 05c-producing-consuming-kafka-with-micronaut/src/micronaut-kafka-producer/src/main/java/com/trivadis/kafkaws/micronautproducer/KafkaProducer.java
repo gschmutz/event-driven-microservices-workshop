@@ -6,7 +6,7 @@ import io.micronaut.configuration.kafka.annotation.Topic;
 import io.micronaut.http.annotation.Body;
 
 @KafkaClient
-public interface NotificationClient {
+public interface KafkaProducer {
 
     @Topic("test-java-micronaut-topic")
     void send (@KafkaKey Long id, @Body String message);

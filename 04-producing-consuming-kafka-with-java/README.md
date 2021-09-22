@@ -260,7 +260,7 @@ mvn exec:java@producer -Dexec.args="1000 100 0"
 Use `kafkacat` or `kafka-console-consumer` to consume the messages from the topic `test-java-topic`.
 
 ```bash
-kafkacat -b localhost -t test-java-topic -f 'Part-%p => %k:%s\n'
+kafkacat -b dataplatform -t test-java-topic -f 'Part-%p => %k:%s\n'
 ```
 
 ```bash
@@ -1311,7 +1311,7 @@ mvn exec:java@producer-json -Dexec.args="100 100 0"
 Use `kafkacat` to consume the messages from the topic `test-java-json-topic`.
 
 ```bash
-kafkacat -b localhost -t test-java-json-topic -q
+kafkacat -b dataplatform -t test-java-json-topic -q
 ```
 
 you can see the messages are all formated as JSON documents
