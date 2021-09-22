@@ -6,7 +6,7 @@ We will fist use just the `StringSerializer` to serialize a `java.lang.String` o
 
 ## Create the project in your Java IDE
 
-Create a new [Maven project](../99-misc/97-working-with-eclipse/README.md) and in the last step use `com.trivadis.kafkaws` for the **Group Id** and `java-kafka` for the **Artifact Id**.
+Create a new Maven Project (using the functionality of your IDE) and use `com.trivadis.kafkaws` for the **Group Id** and `java-kafka` for the **Artifact Id**.
 
 Navigate to the **pom.xml** and double-click on it. The POM Editor will be displayed. 
 
@@ -609,7 +609,7 @@ Replace the `runConsumer()` method with the code below.
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("DONE");Kafka
+        System.out.println("DONE");
     }
 ```
 
