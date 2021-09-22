@@ -128,7 +128,7 @@ We again refer to properties, which will be defined later in the `application.ym
 
 We change the generated Spring Boot application to be a console appliation by implementing the `CommandLineRunner` interface. The `run` method holds the same code as the `main()` method in [Workshop 4: Working with Kafka from Java](../04-producing-consuming-kafka-with-java). The `runProducer` method is also similar, we just use the `kafkaEventProducer` instance injected by Spring to produce the messages to Kafka.
 
-```
+```java
 package com.trivadis.kafkaws.springbootkafkaproducer;
 
 import org.slf4j.Logger;
@@ -339,7 +339,7 @@ mvn spring-boot:run
 
 You can also produce asynchronously using Spring Kafka. Let's implement the `KafkaEventProducer` class in an asynchronous way:
 
-```
+```java
 package com.trivadis.kafkaws.springbootkafkaproducer;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
