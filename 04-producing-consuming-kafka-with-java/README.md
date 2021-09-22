@@ -216,7 +216,7 @@ Kafka provides a synchronous send method to send a record to a topic. Let’s us
                 long time = System.currentTimeMillis();
 
                 ProducerRecord<Long, String> record
-                        = new ProducerRecord<>(TOPIC, key,
+                        = new ProducerRecord<>(TOPIC, 
                         			"[" + id + "] Hello Kafka " + index + " => " + LocalDateTime.now());
 
                 RecordMetadata metadata = producer.send(record).get();
@@ -979,7 +979,7 @@ KafkaConsumerAuto test-java-topic 2          0               0               0  
 
 We can see that all messages were sent to partition 4. 
 
-### Reset offsets to offset to earliest
+### Reset offsets to a timestamp
 
 Let's reset the offsets to the timestamp `2021-09-22T08:19:50.057701` we noted above, by rounding it down to the minute. You also have to adapt the timestamp to UTC timestamp (currently -2)
 
