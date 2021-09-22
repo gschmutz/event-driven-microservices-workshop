@@ -2,6 +2,8 @@
 
 This document describes how to install the workshop environment on a Ubuntu Machine, which could be running in a virtual machine, either in the cloud or on your local machine.
 
+The VM should be configured with at least 8 GB and 4 CPUs.
+
 ## Setup Software
 
 First let's create some environment variables.   
@@ -24,6 +26,13 @@ $ ip addr
     altname enp2s1
 ```    
 
+### Install some helpful utilities
+
+```bash
+# Install various Utilities
+sudo apt-get install -y curl jq kafkacat
+```
+
 ### Installing Docker
 
 ```bash
@@ -43,6 +52,8 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
 ```
 
+Log out 
+
 ### Installing Platys
 
 ```bash
@@ -52,13 +63,6 @@ tar zvxf /tmp/platys.tar.gz
 sudo mv platys /usr/local/bin/
 sudo chown root:root /usr/local/bin/platys
 sudo rm README.md 
-```
-
-### Install some helpful utilities
-
-```bash
-# Install various Utilities
-sudo apt-get install -y curl jq kafkacat
 ```
 
 ## Prepare Environment
