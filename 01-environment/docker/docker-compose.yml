@@ -320,6 +320,19 @@ services:
       - ./data-transfer:/data-transfer
     entrypoint: /bin/sh
     tty: true
+  #  ================================== kcat (used to be kafkacat)  ========================================== #
+  kcat:
+    image: edenhill/kcat:1.7.0
+    container_name: kcat
+    hostname: kcat
+    volumes:
+      - ./data-transfer:/data-transfer
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        while [ 1 -eq 1 ];do sleep 60;done
+    restart: unless-stopped
   #  ================================== Schema Registry UI ========================================== #
   schema-registry-ui:
     image: landoop/schema-registry-ui:latest
@@ -580,7 +593,7 @@ services:
     restart: unless-stopped
   #  ================================== Axon Server ========================================== #
   axon-server:
-    image: axoniq/axonserver:4.5
+    image: axoniq/axonserver:4.5.7
     container_name: axon-server
     hostname: axon-server
     labels:
