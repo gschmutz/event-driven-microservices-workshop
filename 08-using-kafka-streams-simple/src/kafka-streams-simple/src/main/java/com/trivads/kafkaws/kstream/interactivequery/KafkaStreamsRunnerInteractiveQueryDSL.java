@@ -1,22 +1,21 @@
-package com.trivads.kafkaws.kstream.count;
+package com.trivads.kafkaws.kstream.interactivequery;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KafkaStreams;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.*;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 
-import java.time.Duration;
-import java.time.ZoneId;
 import java.util.Properties;
 
-public class KafkaStreamsRunnerCountDSL {
+import static java.lang.Thread.*;
 
-    public static void main(String[] args) {
+public class KafkaStreamsRunnerInteractiveQueryDSL {
+
+    public static void main(String[] args) throws InterruptedException {
         // the builder is used to construct the topology
         StreamsBuilder builder = new StreamsBuilder();
 
@@ -50,5 +49,22 @@ public class KafkaStreamsRunnerCountDSL {
 
         // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
         Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+
+        sleep(20000);
+
+        System.out.println ("******* Interactive Query *******");
+
+        // Get the value by key
+        ReadOnlyKeyValueStore<String, Long> keyValueStore =
+                streams.store("count", QueryableStoreTypes.keyValueStore());
+        System.out.println("Querying State Store for key A:" + keyValueStore.get("AAA"));
+
+        // Get the values for all of the keys available in this application instance
+        KeyValueIterator<String, Long> range = keyValueStore.all();
+        while (range.hasNext()) {
+            KeyValue<String, Long> next = range.next();
+            System.out.println("count for " + next.key + ": " + next.value);
+        }
+        range.close();
     }
 }

@@ -1,4 +1,4 @@
-package com.trivads.kafkaws.kstream.count;
+package com.trivads.kafkaws.kstream.countwindowed;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -8,13 +8,12 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
-import org.apache.kafka.streams.state.KeyValueStore;
 
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Properties;
 
-public class KafkaStreamsRunnerCountDSL {
+public class KafkaStreamsRunnerCountWindowedDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -23,19 +22,24 @@ public class KafkaStreamsRunnerCountDSL {
         // read from the source topic, "test-kstream-input-topic"
         KStream<String, String> stream = builder.stream("test-kstream-input-topic");
 
-        KGroupedStream<String,String> groupedByKey = stream.groupByKey();
-        KTable<String, Long> counts = groupedByKey.count(Materialized.as("count"));
+        // create a tumbling window of 60 seconds
+        TimeWindows tumblingWindow =
+                TimeWindows.of(Duration.ofSeconds(60));
 
-        counts.toStream().print(Printed.<String, Long>toSysOut().withLabel("counts"));
+        KTable<Windowed<String>, Long> counts = stream.groupByKey()
+                .windowedBy(tumblingWindow)
+                .count(Materialized.as("countWindowed"));
+
+        counts.toStream().print(Printed.<Windowed<String>, Long>toSysOut().withLabel("counts"));
 
         final Serde<String> stringSerde = Serdes.String();
         final Serde<Long> longSerde = Serdes.Long();
-        counts.toStream().to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
+                .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
-        config.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/count");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "countWindowed");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());

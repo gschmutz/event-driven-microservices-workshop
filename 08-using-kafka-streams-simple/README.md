@@ -106,9 +106,11 @@ log4j.additivity.io.confluent.examples.streams.microservices=false
 
 ## Creating the necessary Kafka Topic 
 
-We will use the topic `test-kstream-input-topic` and `test-kstream-output-topic` in the KafkaStream processorcode below. Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
+We will use the topics `test-kstream-input-topic` and `test-kstream-output-topic` in all of the various KafkaStream implementations below. Addionally in one of the implementations, we need the compacted log topic `test-kstream-compacted-topic`. 
 
-Connect to the `kafka-1` container and execute the necessary kafka-topics command. 
+Due to the fact that `auto.topic.create.enable` is set to `false`, we have to manually create the topic. 
+
+Connect to the `kafka-1` container and execute the following `kafka-topics` command
 
 ```bash
 docker exec -ti kafka-1 kafka-topics --create \
@@ -122,18 +124,28 @@ docker exec -ti kafka-1 kafka-topics --create \
     --partitions 8 \
     --topic test-kstream-output-topic \
     --zookeeper zookeeper-1:2181
+    
+docker exec -ti kafka-1 kafka-topics --create \
+    --replication-factor 3 \
+    --partitions 8 \
+    --topic test-kstream-compacted-topic \
+    --zookeeper zookeeper-1:2181 \
+    --config cleanup.policy=compact \
+    --config segment.ms=100 \
+    --config delete.retention.ms=100 \
+    --config min.cleanable.dirty.ratio=0.001
 ```
 
 This finishes the setup steps and our new project is ready to be used. Next we will implement the KafkaStreams Processor Topology, first using the DSL and second using the Processor API.
 
 ## Implementing the Kafka Streams Processor using the DSL
 
-Create a new Java package `com.trivads.kafkaws.kstream` and in it a Java class `KafkaStreamsRunnerDSL`. 
+Create a new Java package `com.trivads.kafkaws.kstream.simple` and in it a Java class `KafkaStreamsRunnerDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream;
+package com.trivads.kafkaws.kstream.simple;
 
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -200,9 +212,191 @@ kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P
 
 All the values produced should arrive on the consumer in uppercase.
 
-## Counting Values 
+## Joining a stream to a table
 
-Now let's use Kafka Streams to perform some stateful operations. We will group the messages by key and count the number of messages per key over 60 seconds.
+Now let's use Kafka Streams to perform joins. In this workshop we will join a data stream with some static data, also known as Stream-Table Join. It is in fact an enrichment of a Stream by some static data (a lookup of a static dataset). The streaming data will still come in through the `test-kstream-input-topic` topic and we will enrich it with the data from the `test-kstream-compacted-topic`.  
+
+Create a new package `com.trivads.kafkaws.kstream.tablejoin` and in it a Java class `KafkaStreamsRunnerTableJoinDSL `. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivads.kafkaws.kstream.tablejoin;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Printed;
+import org.apache.kafka.streams.kstream.Produced;
+
+import java.util.Properties;
+
+public class KafkaStreamsRunnerTableJoinDSL {
+
+    public static void main(String[] args) {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<String, String> stream = builder.stream("test-kstream-input-topic");
+
+        // read from the source topic, "test-kstream-input-topic"
+        KTable<String, String> table = builder.table("test-kstream-compacted-topic");
+
+        // join the stream with the table
+        KStream<String, String> joined = stream.join(table, (s,t) -> String.join (":",s, t));
+
+        // output the joined values
+        joined.to("test-kstream-output-topic", Produced.with(Serdes.String(), Serdes.String()));
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "tablejoin");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+
+        // build the topology and start streaming
+        Topology topology = builder.build();
+        System.out.println(topology.describe());
+        KafkaStreams streams = new KafkaStreams(topology, config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+First let's add the "static" data to the compacted log topic. This is the data we are doing the lookup against. In a terminal window run the following `kafkacat` command
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-compacted-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, such as
+
+```bash
+A,Entity A
+B,Entity B
+C,Entity C
+D,Entity D
+```
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and in another terminal window run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic -o end -f "%k,%s\n" -q
+```
+
+with that in place, in a 3rd terminal window, produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, such as
+
+```bash
+A,AAA
+B,BBB
+C,CCC
+A,AAA
+D,DDD
+E,EEE
+A,AAA
+```
+
+immediately the count should start to add up for each key and the output from the consumer should be similar to the one shown below
+
+```bash
+A,AAA;Entity A
+B,BBB;Entity B
+C,CCC;Entity C
+A,AAA;Entity A
+D,DDD;Entity D
+A,AAA;Entity A
+```
+
+you can see that there has been no output for the input of `E,EEE`, because there is no entry for key `E` in the compacted topic.
+
+Let's add the "entity" to the compacted topic, by entering the following value on the terminal where `kafkacat -b dataplatform:9092 -t test-kstream-compacted-topic -P -K ,` is still running
+
+```bash
+E,Entity E
+```
+
+if you try again with an entry of `E,EEE` on the stream topic
+
+```bash
+E,EEE
+```
+
+then you should get an output of `E,EEE:Entity E`.
+
+You can also change from an `join` to a `leftJoin`, so that in case where there is no value in the table, there is still an output shown, with a `null` from the table. 
+
+```java
+        // join the stream with the table
+        KStream<String, String> joined = stream.join(table, (s,t) -> String.join (":",s, t));
+``` 
+
+Also try to update a value in the table, for example by publishing a new message to topic `test-kstream-compacted-topic`
+
+```bash
+A,Object A
+```
+
+if you send another two events on the topic `test-kstream-input-topic`
+
+```bash
+A,AAA
+B,BBB
+```
+
+then you can see that immediately the join shows the updated value for `A` whereas `B` still shows the same value
+
+```bash
+A,AAA;Object A
+B,BBB;Entity B
+```
+
+In this example we also use the `Topology.describe()` command, which will show a string representation of the Kafka Streams topology. 
+
+```
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test-kstream-input-topic])
+      --> KSTREAM-JOIN-0000000004
+    Processor: KSTREAM-JOIN-0000000004 (stores: [test-kstream-compacted-topic-STATE-STORE-0000000001])
+      --> KSTREAM-SINK-0000000005
+      <-- KSTREAM-SOURCE-0000000000
+    Source: KSTREAM-SOURCE-0000000002 (topics: [test-kstream-compacted-topic])
+      --> KTABLE-SOURCE-0000000003
+    Sink: KSTREAM-SINK-0000000005 (topic: test-kstream-output-topic)
+      <-- KSTREAM-JOIN-0000000004
+    Processor: KTABLE-SOURCE-0000000003 (stores: [test-kstream-compacted-topic-STATE-STORE-0000000001])
+      --> none
+      <-- KSTREAM-SOURCE-0000000002
+```
+
+You can use the [Kafka Streams Topology Visualizer](https://zz85.github.io/kafka-streams-viz/) utility to visualize the toplolgy in a graphical manner. Copy the string represenation into the **Input Kafka Topology** field and click **Update**. You should a visualization like the one below
+
+![Alt Image Text](./images/kafka-streams-topology-visualizer-join.png "Kafka Streams Topology Visulizer")
+
+You can see that the compacted topic `test-kstream-compacted-topic` is read into a state store and the `test-kstream-input-topic` is joined against that state store to enrich the stream.   
+
+## Counting Values
+
+Now let's use Kafka Streams to perform some stateful operations. We will group the messages by key and count the number of messages per key. We will be doing it without a time window and add it in the next iteration.
 
 Create a new Java package `com.trivads.kafkaws.kstream.count` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
 
@@ -212,18 +406,134 @@ Add the following code for the implemenation
 package com.trivads.kafkaws.kstream.count;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.state.KeyValueStore;
+
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Properties;
+
+public class KafkaStreamsRunnerCountDSL {
+
+    public static void main(String[] args) {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<String, String> stream = builder.stream("test-kstream-input-topic");
+
+        KGroupedStream<String,String> groupedByKey = stream.groupByKey();
+        KTable<String, Long> counts = groupedByKey.count(Materialized.as("count"));
+
+        counts.toStream().print(Printed.<String, Long>toSysOut().withLabel("counts"));
+
+        final Serde<String> stringSerde = Serdes.String();
+        final Serde<Long> longSerde = Serdes.Long();
+        counts.toStream().to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
+        config.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/count");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+
+        // build the topology and start streaming
+        Topology topology = builder.build();
+        System.out.println(topology.describe());
+        KafkaStreams streams = new KafkaStreams(topology, config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+We are deliberatly disabling the cache by setting the `CACHE_MAX_BYTES_BUFFERING_CONFIG` to the value of `0`. By that the output is shown immediately, otherwise it would take a while until the buffer is fulll, especially because we are manually sending messages.
+
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and then first run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic -s value=q -o end -f "%k,%s\n"
+```
+
+with that in place, in 2nd terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, such as
+
+```bash
+A,AAA
+A,AAA
+B,BBB
+B,BBB
+C,CCC
+D,DDD
+E,EEE
+D,DDD
+```
+
+immediately the count should start to add up for each key and the output from the consumer should be similar to the one shown below
+
+```bash
+C,1
+D,1
+B,1
+B,2
+A,1
+A,2
+E,1
+```
+
+We can again visualize the topology printed to the console output using the [Kafka Streams Topology Visualizer](https://zz85.github.io/kafka-streams-viz/) and should see the following output
+
+![Alt Image Text](./images/kafka-streams-topology-visualizer.png "Kafka Streams Topology Visulizer")
+
+Now let's see the reliabilty of the state store in action. If you check for the topics in AKHQ (<http://dataplatform:28107>), you can see that there is a new topic `count-count-changelog`. This is the change log topic of the state store which is holding our counts by key.
+
+Let's stop the topology simulating a problem with the process. Now start it again and publish some additional data to the input topic. The count should restart from where it left off and will not start again from 0. 
+
+## Counting Values over a Time Window
+
+Now let's use Kafka Streams to perform a stateful operation on a Time Window. We will group the messages by key and count the number of messages per key over 60 seconds.
+
+Create a new Java package `com.trivads.kafkaws.kstream.countwindowed` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivads.kafkaws.kstream.countwindowed;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
 
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.Properties;
 
-import static org.apache.kafka.streams.kstream.Suppressed.BufferConfig.unbounded;
-
-public class KafkaStreamsRunnerCountDSL {
+public class KafkaStreamsRunnerCountWindowedDSL {
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -238,7 +548,7 @@ public class KafkaStreamsRunnerCountDSL {
 
         KTable<Windowed<String>, Long> counts = stream.groupByKey()
                 .windowedBy(tumblingWindow)
-                .count(Materialized.as("count"));
+                .count(Materialized.as("countWindowed"));
 
         counts.toStream().print(Printed.<Windowed<String>, Long>toSysOut().withLabel("counts"));
 
@@ -246,17 +556,20 @@ public class KafkaStreamsRunnerCountDSL {
         final Serde<Long> longSerde = Serdes.Long();
         counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
                 .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
-        
+
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "countWindowed");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
         // build the topology and start streaming
-        KafkaStreams streams = new KafkaStreams(builder.build(), config);
+        Topology topology = builder.build();
+        System.out.println(topology.describe());
+        KafkaStreams streams = new KafkaStreams(topology, config);
         streams.start();
 
         // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
@@ -587,14 +900,151 @@ B,111,222,333
 
 * Implement an additional stream which you can use to signal clearing the state (either globally or just for the given key)
 
+
+## Interactive Query
+
+Interactive Queries allow you to leverage the state of your application from outside your application. The Kafka Streams API enables your applications to be queryable.
+
+Let's start with querying the local state.
+
+### Querying local state
+
+A Kafka Streams application typically runs on multiple instances. The state that is locally available on any given instance is only a subset of the application’s entire state. Querying the local stores on an instance will only return data locally available on that particular instance.
+
+Create a new Java package `com.trivads.kafkaws.kstream.interactivequery` and in it a Java class `KafkaStreamsRunnerInteractiveQueryDSL `. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivads.kafkaws.kstream.interactivequery;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.state.KeyValueIterator;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+
+import java.util.Properties;
+
+import static java.lang.Thread.*;
+
+public class KafkaStreamsRunnerInteractiveQueryDSL {
+
+    public static void main(String[] args) throws InterruptedException {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<String, String> stream = builder.stream("test-kstream-input-topic");
+
+        KGroupedStream<String,String> groupedByKey = stream.groupByKey();
+        KTable<String, Long> counts = groupedByKey.count(Materialized.as("count"));
+
+        counts.toStream().print(Printed.<String, Long>toSysOut().withLabel("counts"));
+
+        final Serde<String> stringSerde = Serdes.String();
+        final Serde<Long> longSerde = Serdes.Long();
+        counts.toStream().to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "count");
+        config.put(StreamsConfig.STATE_DIR_CONFIG, "/tmp/count");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+
+        // build the topology and start streaming
+        Topology topology = builder.build();
+        System.out.println(topology.describe());
+        KafkaStreams streams = new KafkaStreams(topology, config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+
+        sleep(20000);
+
+        System.out.println ("******* Interactive Query *******");
+
+        // Get the value by key
+        ReadOnlyKeyValueStore<String, Long> keyValueStore =
+                streams.store("count", QueryableStoreTypes.keyValueStore());
+        System.out.println("Querying State Store for key A:" + keyValueStore.get("AAA"));
+
+        // Get the values for all of the keys available in this application instance
+        KeyValueIterator<String, Long> range = keyValueStore.all();
+        while (range.hasNext()) {
+            KeyValue<String, Long> next = range.next();
+            System.out.println("count for " + next.key + ": " + next.value);
+        }
+        range.close();
+    }
+}
+```
+
+We copied the implementation of the count by key without window and added the querying of the local state store after the `sleep(20000)`. 
+
+The idea is that after starting the topology will work for 20 seconds and then by using Interactive Query display the values of the current state.
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the topology
+
+In a terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce some values with `<key>,<value>` syntax, such as
+
+```bash
+A,AAA
+A,BBB
+A,CCC
+B,111
+B,222
+C,333
+```
+
+After the 20 seconds the output of the interactive query should be displayed on the console
+
+```
+******* Interactive Query *******
+Querying State Store for key A:3
+count for A: 3
+count for B: 2
+count for C: 1
+```
+
+### Querying remote state
+
+To query remote states for the entire app, you must expose the application’s full state to other applications, including applications that are running on different machines.
+
+The following steps are necessary to implement querying from a remote state:
+
+1. Add an RPC layer to the applicaiton
+2. Expose the RPC endpoints of your application’s instances via the application.server configuration setting of Kafka Streams.
+3. In the RPC layer, discover remote application instances and their state stores and query locally available state stores to make the full state of your application queryable
+
+You can find an example implementation in the [WordCountInteractiveQueriesExample.java](https://github.com/confluentinc/kafka-streams-examples/blob/6.2.1-post/src/main/java/io/confluent/examples/streams/interactivequeries/WordCountInteractiveQueriesExample.java) class.
+
 ## Implementing the Kafka Streams Processor using the Processor API
 
-Create a new Java package `com.trivads.kafkaws.kstream` and in it a Java class `KafkaStreamsRunnerDSL`. 
+In this simple implementation we are using the Processor API to implement a transformation on a data stream.
+
+In the already existing package `com.trivads.kafkaws.kstream.simple` add a new Java class `KafkaStreamsRunnerProcessorAPI`. 
 
 Add the following code for the implemenation of lgoic using the Processory API
 
 ```java
-package com.trivads.kafkaws.kstream;
+package com.trivads.kafkaws.kstream.simple;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -632,10 +1082,10 @@ public class KafkaStreamsRunnerProcessorAPI {
 }
 ```
 
-Create the ChangeCaseProcessor which implements the `Processor` interface.
+Now create the ChangeCaseProcessor which implements the `Processor` interface.
 
 ```java
-package com.trivads.kafkaws.kstream;
+package com.trivads.kafkaws.kstream.simple;
 
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
