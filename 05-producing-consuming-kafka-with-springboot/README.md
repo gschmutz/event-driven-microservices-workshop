@@ -215,14 +215,6 @@ First lets build the application:
 mvn package -Dmaven.test.skip=true
 ```
 
-### Use Console to test the application
-
-In a terminal window start consuming from the output topic:
-
-```bash
-kafkacat -b $DATAPLATFORM_IP -t test-spring-topic
-```
-
 ### Run the application
 
 Now let's run the application
@@ -237,6 +229,14 @@ To run the producer with custom parameters (for example to specify the key to us
 
 ```bash
 mvn spring-boot:run -Dspring-boot.run.arguments="100 10 10"
+```
+
+### Use Console to test the application
+
+In a terminal window start consuming from the output topic:
+
+```bash
+kafkacat -b $DATAPLATFORM_IP -t test-spring-topic
 ```
 
 ## Create the Spring Boot Consumer
@@ -466,3 +466,5 @@ public class KafkaEventConsumer {
 
 }
 ```
+
+Set the `ack-mode` to `manual` in the `application.yml`. 
