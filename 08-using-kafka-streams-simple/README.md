@@ -1347,6 +1347,8 @@ public class KafkaStreamsRunnerAvroDSL {
 }
 ```
 
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
 Let's start the programm and in a first terminal window, run a `kcat` Avro consumer on the output topic. We have to use `Kafkacat` (now named `kcat`) version 1.6 or later, in order to get avro support. That's why we can't use the one installed as an ubuntu package, as it is still on version `1.5` and we are using the container of the platform
 
 ```bash
