@@ -184,6 +184,10 @@
       #
       KAFKA_EAGLE_enable: false
       #
+      # ===== Kowl ========
+      #
+      KOWL_enable: true
+      #
       # ===== Streams Explorer UI ========
       #
       STREAMS_EXPLORER_enable: false
