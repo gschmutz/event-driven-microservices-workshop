@@ -1,4 +1,4 @@
-package com.trivads.kafkaws.kstream.customstate;
+package com.trivadis.kafkaws.kstream.customstate;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;

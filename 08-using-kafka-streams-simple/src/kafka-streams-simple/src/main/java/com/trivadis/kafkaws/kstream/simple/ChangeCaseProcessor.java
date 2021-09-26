@@ -1,4 +1,4 @@
-package com.trivads.kafkaws.kstream.simple;
+package com.trivadis.kafkaws.kstream.simple;
 
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;

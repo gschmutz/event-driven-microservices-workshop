@@ -18,6 +18,7 @@ First add the following property into the already existing `<properites>` sectio
 ```xml
    <properties>
        ...
+       <confluent.version>6.2.0</confluent.version>
        <kafka.version>2.8.0</kafka.version>
        <slf4j.version>1.7.32</slf4j.version>
     </properties>
@@ -140,12 +141,12 @@ This finishes the setup steps and our new project is ready to be used. Next we w
 
 ## Implementing the Kafka Streams Processor using the DSL
 
-Create a new Java package `com.trivads.kafkaws.kstream.simple` and in it a Java class `KafkaStreamsRunnerDSL`. 
+Create a new Java package `com.trivadis.kafkaws.kstream.simple` and in it a Java class `KafkaStreamsRunnerDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.simple;
+package com.trivadis.kafkaws.kstream.simple;
 
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -216,12 +217,12 @@ All the values produced should arrive on the consumer in uppercase.
 
 Now let's use Kafka Streams to perform joins. In this workshop we will join a data stream with some static data, also known as Stream-Table Join. It is in fact an enrichment of a Stream by some static data (a lookup of a static dataset). The streaming data will still come in through the `test-kstream-input-topic` topic and we will enrich it with the data from the `test-kstream-compacted-topic`.  
 
-Create a new package `com.trivads.kafkaws.kstream.tablejoin` and in it a Java class `KafkaStreamsRunnerTableJoinDSL `. 
+Create a new package `com.trivadis.kafkaws.kstream.tablejoin` and in it a Java class `KafkaStreamsRunnerTableJoinDSL `. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.tablejoin;
+package com.trivadis.kafkaws.kstream.tablejoin;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -398,12 +399,12 @@ You can see that the compacted topic `test-kstream-compacted-topic` is read into
 
 Now let's use Kafka Streams to perform some stateful operations. We will group the messages by key and count the number of messages per key. We will be doing it without a time window and add it in the next iteration.
 
-Create a new Java package `com.trivads.kafkaws.kstream.count` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
+Create a new Java package `com.trivadis.kafkaws.kstream.count` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.count;
+package com.trivadis.kafkaws.kstream.count;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -513,12 +514,12 @@ Let's stop the topology simulating a problem with the process. Now start it agai
 
 Now let's use Kafka Streams to perform a stateful operation on a Time Window. We will group the messages by key and count the number of messages per key over 60 seconds.
 
-Create a new Java package `com.trivads.kafkaws.kstream.countwindowed` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
+Create a new Java package `com.trivadis.kafkaws.kstream.countwindowed` and in it a Java class `KafkaStreamsRunnerCountDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.countwindowed;
+package com.trivadis.kafkaws.kstream.countwindowed;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -623,12 +624,12 @@ Session windows aggregate events (by key) into sessions. A session represents a 
 
 Let's use Kafka Streams to perform a count on a session window.
 
-Create a new package `com.trivads.kafkaws.kstream.countsession` and in it a Java class `KafkaStreamsRunnerCountSessionWindowedDSL`. 
+Create a new package `com.trivadis.kafkaws.kstream.countsession` and in it a Java class `KafkaStreamsRunnerCountSessionWindowedDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.countsession;
+package com.trivadis.kafkaws.kstream.countsession;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -738,12 +739,12 @@ A : 2021-09-26T15:14:46.622+02:00[Europe/Zurich] to 2021-09-26T15:14:46.622+02:0
 
 Now let's use Kafka Streams to perform antoher stateful operations. We will group the messages by key and aggregate (create a sum of the values) the values of the messages per key over 60 seconds.
 
-Create a new Java package `com.trivads.kafkaws.kstream.aggregate` and in it a Java class `KafkaStreamsRunnerAggregateDSL`. 
+Create a new Java package `com.trivadis.kafkaws.kstream.aggregate` and in it a Java class `KafkaStreamsRunnerAggregateDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.aggregate;
+package com.trivadis.kafkaws.kstream.aggregate;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -860,12 +861,12 @@ We can also run our own state store from Kafka Streams. For that we basically co
 
 In this simple implementation we are again using the message key as the grouping criteria and concat all the values we got since the beginning and return the new value as part of the new message. Both the key and the value are serialized as `String`.
 
-Create a new Java package `com.trivads.kafkaws.kstream.customstate` and in it a Java class `KafkaStreamsRunnerCustomStateDSL`. 
+Create a new Java package `com.trivadis.kafkaws.kstream.customstate` and in it a Java class `KafkaStreamsRunnerCustomStateDSL`. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.customstate;
+package com.trivadis.kafkaws.kstream.customstate;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -1028,12 +1029,12 @@ Let's start with querying the local state.
 
 A Kafka Streams application typically runs on multiple instances. The state that is locally available on any given instance is only a subset of the application’s entire state. Querying the local stores on an instance will only return data locally available on that particular instance.
 
-Create a new Java package `com.trivads.kafkaws.kstream.interactivequery` and in it a Java class `KafkaStreamsRunnerInteractiveQueryDSL `. 
+Create a new Java package `com.trivadis.kafkaws.kstream.interactivequery` and in it a Java class `KafkaStreamsRunnerInteractiveQueryDSL `. 
 
 Add the following code for the implemenation
 
 ```java
-package com.trivads.kafkaws.kstream.interactivequery;
+package com.trivadis.kafkaws.kstream.interactivequery;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -1152,16 +1153,241 @@ The following steps are necessary to implement querying from a remote state:
 
 You can find an example implementation in the [WordCountInteractiveQueriesExample.java](https://github.com/confluentinc/kafka-streams-examples/blob/6.2.1-post/src/main/java/io/confluent/examples/streams/interactivequeries/WordCountInteractiveQueriesExample.java) class.
 
+## Working with Avro 
+
+For working with Avro, we have to enhance the Maven POM file. 
+
+First add the confluent mvn repository
+
+```xml
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </pluginRepository>
+    </pluginRepositories>  
+```
+
+and then add the following two dependencies into the `<dependencies>` element
+
+
+```xml
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-streams-avro-serde</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+```
+
+Additionally add the following plugins into the `<plugins>` elementtrivadis
+
+```xml
+			<plugin>
+				<groupId>org.apache.avro</groupId>
+				<artifactId>avro-maven-plugin</artifactId>
+				<version>1.9.2</version>
+				<executions>
+					<execution>
+						<id>schemas</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>schema</goal>
+						</goals>
+						<configuration>
+							<excludes>
+								<exclude>**/mapred/tether/**</exclude>
+							</excludes>
+							<sourceDirectory>${project.basedir}/src/main/java/com/trivadis/kafkaws/kstream/avro/</sourceDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+   				<groupId>io.confluent</groupId>
+    				<artifactId>kafka-schema-registry-maven-plugin</artifactId>
+    				<version>4.0.0</version>
+				<configuration>
+					<schemaRegistryUrls>
+						<param>http://dataplatform:8081</param>
+					</schemaRegistryUrls>
+					<subjects>
+						<test-kstream-input-topic-value>src/main/java/com/trivadis/kafkaws/kstream/avro/MyData.avsc</test-kstream-input-topic-value>
+					</subjects>
+				</configuration>
+				<goals>
+					<goal>register</goal>
+				</goals>
+
+			</plugin>
+			
+```
+
+Create a new package `com.trivadis.kafkaws.kstream.avro`.
+
+Now let's start with the Avro schema. Add the following schema definition to the `MyData.avsc` file into the package.
+
+```json
+{
+  "type" : "record",
+  "name" : "MyData",
+  "namespace" : "com.trivadis.kafkaws.kstream.avro",
+  "fields" : [ {
+    "name" : "f1",
+    "type" : "string"
+  },
+    {
+      "name" : "f2",
+      "type" : "long"
+    }  ]
+}
+```
+
+Generate the Java class for the Avro Schema running the following Maven command
+
+```bash
+mvn compile
+```
+
+The `MyData` java class should appear in the `target` folder under `generated-sources`. 
+
+Next let's register the Avro schema in the Schema Registry using another Maven command
+
+```bash
+mvn schema-registry:register
+```
+
+Now let's crate the Kafka Streams topology by creating a new class named `KafkaStreamsRunnerAvroDSL`. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivadis.kafkaws.kstream.avro;
+
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
+import org.apache.avro.specific.SpecificRecord;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Printed;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.Properties;
+
+public class KafkaStreamsRunnerAvroDSL {
+
+    private static <VT extends SpecificRecord> SpecificAvroSerde<VT> createSerde(String schemaRegistryUrl) {
+        SpecificAvroSerde<VT> serde = new SpecificAvroSerde<>();
+        Map<String, String> serdeConfig = Collections
+                .singletonMap(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+        serde.configure(serdeConfig, false);
+        return serde;
+    }
+
+    public static void main(String[] args) {
+        final String schemaRegistryUrl = "http://dataplatform:8081";
+        final SpecificAvroSerde<MyData> myDataSerde = createSerde(schemaRegistryUrl);
+
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<Void, MyData> stream = builder.stream("test-kstream-input-topic");
+
+        // for each record that appears in the source topic,
+        // print the value
+        stream.foreach(
+                (key, value) -> {
+                    System.out.println("(From Avro DSL) " + value);
+                });
+
+        // transform the values to upper case
+        KStream<Void, MyData> upperStream = stream.mapValues(value -> MyData.newBuilder(value).setF1(value.getF1().toString().toUpperCase()).build());
+
+        // you can also print using the `print` operator
+        upperStream.print(Printed.<Void, MyData>toSysOut().withLabel("upperValue"));
+
+        upperStream.to("test-kstream-output-topic");
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "avro");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Void().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, "io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde");
+        config.put(KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);
+
+        // build the topology and start streaming
+        KafkaStreams streams = new KafkaStreams(builder.build(), config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+Let's start the programm and in a first terminal window, run a `kcat` Avro consumer on the output topic. We have to use `Kafkacat` (now named `kcat`) version 1.6 or later, in order to get avro support. That's why we can't use the one installed as an ubuntu package, as it is still on version `1.5` and we are using the container of the platform
+
+```bash
+docker exec -ti kcat kcat -b kafka-1:19092 -t test-kstream-output-topic -s value=avro -r http://dataplatform:8081 -q
+```
+
+With that in place, in 2nd terminal produce some messages using the `kafka-avro-console-producer`, which is part of the Schema Registry distribution and allows to produce avro messages (make sure that you specify the right id of the schema (you can get it from the Schema Registry UI: <http://dataplatform:28102>)
+
+```
+docker exec -ti schema-registry-1 kafka-avro-console-producer \
+  --broker-list kafka-1:19092 --topic test-kstream-input-topic \
+  --property schema.registry.url=http://schema-registry-1:8081 \
+  --property value.schema.id=1
+```
+
+You have to specify the messages in JSON format, such as shown here
+
+```bash
+{"f1": "hello", "f2":21}
+{"f1": "world", "f2":22}
+```
+
+if you publish these two messages, you should see the following output on console of the `kcat`
+
+```bash
+{"f1": "HELLO", "f2": 21}
+{"f1": "WORLD", "f2": 22}
+``
+
+All the values produced should arrive on the consumer in uppercase.
+
 ## Implementing the Kafka Streams Processor using the Processor API
 
 In this simple implementation we are using the Processor API to implement a transformation on a data stream.
 
-In the already existing package `com.trivads.kafkaws.kstream.simple` add a new Java class `KafkaStreamsRunnerProcessorAPI`. 
+In the already existing package `com.trivadis.kafkaws.kstream.simple` add a new Java class `KafkaStreamsRunnerProcessorAPI`. 
 
 Add the following code for the implemenation of lgoic using the Processory API
 
 ```java
-package com.trivads.kafkaws.kstream.simple;
+package com.trivadis.kafkaws.kstream.simple;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
@@ -1202,7 +1428,7 @@ public class KafkaStreamsRunnerProcessorAPI {
 Now create the ChangeCaseProcessor which implements the `Processor` interface.
 
 ```java
-package com.trivads.kafkaws.kstream.simple;
+package com.trivadis.kafkaws.kstream.simple;
 
 import org.apache.kafka.streams.processor.api.Processor;
 import org.apache.kafka.streams.processor.api.ProcessorContext;
