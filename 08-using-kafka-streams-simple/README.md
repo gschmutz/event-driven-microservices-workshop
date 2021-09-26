@@ -1374,7 +1374,7 @@ if you publish these two messages, you should see the following output on consol
 ```bash
 {"f1": "HELLO", "f2": 21}
 {"f1": "WORLD", "f2": 22}
-``
+```
 
 All the values produced should arrive on the consumer in uppercase.
 
