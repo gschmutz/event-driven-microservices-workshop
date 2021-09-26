@@ -1,4 +1,4 @@
-package com.trivads.kafkaws.kstream.countwindowed;
+package com.trivads.kafkaws.kstream.countsession;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -8,12 +8,15 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
 
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Properties;
 
-public class KafkaStreamsRunnerCountWindowedDSL {
+public class KafkaStreamsRunnerCountSessionWindowedDSL {
+
+    private static Object Produced;
 
     public static void main(String[] args) {
         // the builder is used to construct the topology
@@ -23,23 +26,21 @@ public class KafkaStreamsRunnerCountWindowedDSL {
         KStream<String, String> stream = builder.stream("test-kstream-input-topic");
 
         // create a tumbling window of 60 seconds
-        TimeWindows tumblingWindow =
-                TimeWindows.of(Duration.ofSeconds(60));
+        SessionWindows sessionWindow =
+                SessionWindows.with(Duration.ofSeconds(30));
 
         KTable<Windowed<String>, Long> counts = stream.groupByKey()
-                .windowedBy(tumblingWindow)
-                .count(Materialized.as("countWindowed"));
+                .windowedBy(sessionWindow)
+                .count(Materialized.as("coundSessionWindowed"));
 
         counts.toStream().print(Printed.<Windowed<String>, Long>toSysOut().withLabel("counts"));
 
-        final Serde<String> stringSerde = Serdes.String();
-        final Serde<Long> longSerde = Serdes.Long();
-        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")) + " : " + v)
-                .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")) + " : " + v )
+                .to("test-kstream-output-topic");
 
         // set the required properties for running Kafka Streams
         Properties config = new Properties();
-        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "countWindowed");
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "countSessionWindowed");
         config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
@@ -48,7 +49,6 @@ public class KafkaStreamsRunnerCountWindowedDSL {
 
         // build the topology and start streaming
         Topology topology = builder.build();
-        System.out.println(topology.describe());
         KafkaStreams streams = new KafkaStreams(topology, config);
         streams.start();
 

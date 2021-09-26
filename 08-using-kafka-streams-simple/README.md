@@ -554,7 +554,7 @@ public class KafkaStreamsRunnerCountWindowedDSL {
 
         final Serde<String> stringSerde = Serdes.String();
         final Serde<Long> longSerde = Serdes.Long();
-        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")))
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")) + " : " + v)
                 .to("test-kstream-output-topic", Produced.with(stringSerde, longSerde));
 
         // set the required properties for running Kafka Streams
@@ -615,6 +615,123 @@ E : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zuric
 A : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],2
 % Reached end of topic test-kstream-output-topic [1] at offset 3
 C : 2021-08-22T15:26+02:00[Europe/Zurich] to 2021-08-22T15:27+02:00[Europe/Zurich],1
+```
+
+## Session Window
+
+Session windows aggregate events (by key) into sessions. A session represents a period of activity followed by inactivity period. Once the defined time for inactivity elapses, the session is considered closed. Session windows are a bit different from other window types (hopping, tumbling) because they don’t have a fixed window size. As long as new records arrive for a key within the inactivity gap, the window continues to grow in size, meaning the amount of time the window spans, not the total number of records in the window. Another way to view session windows is that they are driven by behavior while other window types are solely time based.
+
+Let's use Kafka Streams to perform a count on a session window.
+
+Create a new package `com.trivads.kafkaws.kstream.countsession` and in it a Java class `KafkaStreamsRunnerCountSessionWindowedDSL`. 
+
+Add the following code for the implemenation
+
+```java
+package com.trivads.kafkaws.kstream.countsession;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.kstream.internals.SessionWindow;
+
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.Properties;
+
+public class KafkaStreamsRunnerCountSessionWindowedDSL {
+
+    private static Object Produced;
+
+    public static void main(String[] args) {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<String, String> stream = builder.stream("test-kstream-input-topic");
+
+        // create a tumbling window of 60 seconds
+        SessionWindows sessionWindow =
+                SessionWindows.with(Duration.ofSeconds(30));
+
+        KTable<Windowed<String>, Long> counts = stream.groupByKey()
+                .windowedBy(sessionWindow)
+                .count(Materialized.as("countWindowed"));
+
+        counts.toStream().print(Printed.<Windowed<String>, Long>toSysOut().withLabel("counts"));
+
+        counts.toStream( (wk,v) -> wk.key() + " : " + wk.window().startTime().atZone(ZoneId.of("Europe/Zurich")) + " to " + wk.window().endTime().atZone(ZoneId.of("Europe/Zurich")) + " : " + v )
+                .to("test-kstream-output-topic");
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "countWindowed");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        config.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
+
+        // build the topology and start streaming
+        Topology topology = builder.build();
+        KafkaStreams streams = new KafkaStreams(topology, config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-input-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and then first run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic -s value=q -o end -f "%k,%s\n"
+```
+
+with that in place, in 2nd terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P -K , 
+```
+
+produce a first value with key `A`
+
+```bash
+A,AAA
+```
+
+followed by another one a few seconds apart
+
+```bash
+A,AAA
+```
+
+in the output you will see a first count of 1, followed by 2 and another message with a value of `NULL` to "delete" the previous key (the one with count 1). You can see that the time has been expanded in the one with count 2
+
+```bash
+A : 2021-09-26T15:13:54.354+02:00[Europe/Zurich] to 2021-09-26T15:13:54.354+02:00[Europe/Zurich] : 1,
+A : 2021-09-26T15:13:54.354+02:00[Europe/Zurich] to 2021-09-26T15:13:59.711+02:00[Europe/Zurich] : 2,
+A : 2021-09-26T15:13:54.354+02:00[Europe/Zurich] to 2021-09-26T15:13:54.354+02:00[Europe/Zurich] : null,
+```
+
+wait for 30 seconds and then publish another message for key `A`
+
+```bash
+A,AAA
+```
+
+and you can see that the previous session has been closed and a new one has been started
+
+```bash
+A : 2021-09-26T15:14:46.622+02:00[Europe/Zurich] to 2021-09-26T15:14:46.622+02:00[Europe/Zurich] : 1
 ```
 
 ## Aggregating Values 
