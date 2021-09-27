@@ -1432,12 +1432,11 @@ Now create the ChangeCaseProcessor which implements the `Processor` interface.
 ```java
 package com.trivadis.kafkaws.kstream.simple;
 
-import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.ProcessorContext;
-import org.apache.kafka.streams.processor.api.Record;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorContext;
 
-public class ChangeCaseProcessor implements Processor<Void, String, Void, String> {
-    private ProcessorContext<Void,String> context = null;
+public class ChangeCaseProcessor implements Processor<Void, String> {
+    private ProcessorContext context = null;
     private boolean toUpperCase = true;
 
     public ChangeCaseProcessor(boolean toUpperCase) {
@@ -1445,32 +1444,123 @@ public class ChangeCaseProcessor implements Processor<Void, String, Void, String
     }
 
     @Override
-    public void init(ProcessorContext<Void, String> context) {
+    public void init(ProcessorContext context) {
         this.context = context;
     }
 
     @Override
-    public void process(Record<Void, String> record) {
-        System.out.println("(Processor API) " + record.value());
-        String newValue = record.value();
+    public void process(Void key, String value) {
+        System.out.println("(Processor API) " + value);
+        String newValue = value;
 
         if (toUpperCase) {
-            newValue = record.value().toUpperCase();
+            newValue = value.toUpperCase();
         } else {
-            newValue = record.value().toLowerCase();
+            newValue = value.toLowerCase();
         }
-        Record<Void, String> newRecord = new Record<>(record.key(), newValue, record.timestamp());
-        context.forward(newRecord);
+        context.forward(key, newValue);
     }
 
     @Override
     public void close() {
         // no special clean up needed in this example
     }
+
 }
 ```
 
 As we are reusing the topics from the previous solution, you might want to clear (empty) both the input and the out topic before starting the program. You can easily do that using AKHQ (navigate to the topic, i.e. <http://dataplatform:28107/ui/docker-kafka-server/topic/test-kstream-output-topic> and click on **Empty Topic** on the bottom). 
+
+Start the programm and then first run a `kafkacat` consumer on the output topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-output-topic
+```
+
+with that in place, in 2nd terminal produce some messages using `kafkacat` in producer mode on the input topic
+
+```bash
+kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P
+```
+
+All the values produced should arrive on the consumer in uppercase.
+
+
+Unit testing the `ChangeCaseProcessor` can be done using the `MockProcessorContext` from the `kafka-streams-test-utils` library.
+
+Add the following dependencies to the Maven `pom.xml`
+
+```xml
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams-test-utils</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.8.1</version>
+            <scope>test</scope>
+        </dependency>        
+        
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.15.0</version>
+            <scope>test</scope>
+        </dependency>        
+```
+
+And implement the following unit test
+
+```
+package trivadis.kafkaws.kstream.simple;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.Properties;
+
+import com.trivadis.kafkaws.kstream.simple.ChangeCaseProcessor;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.MockProcessorContext;
+import org.apache.kafka.streams.processor.api.ProcessorContext;
+import org.apache.kafka.streams.processor.api.Record;
+import org.apache.kafka.streams.state.KeyValueStore;
+import org.apache.kafka.streams.state.Stores;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+public class ChangeCaseProcessorTest {
+    MockProcessorContext processorContext;
+
+    @BeforeEach
+    public void setup() {
+        Properties props = new Properties();
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dummy:1234");
+        processorContext = new MockProcessorContext(props);
+    }
+
+    @Test
+    public void testProcessorUpperCase() {
+        String key = null;
+        String value = "some value";
+
+        ChangeCaseProcessor processor = new ChangeCaseProcessor(true);
+        processor.init(processorContext);
+        processor.process(null, "this is a test");
+
+        assertEquals(processorContext.forwarded().size(), 1);
+        assertEquals("THIS IS A TEST", processorContext.forwarded().get(0).keyValue().value);
+    }
+
+}
+```
+
 
 ### Add-Ons
 
