@@ -1485,8 +1485,9 @@ kafkacat -b dataplatform:9092 -t test-kstream-input-topic -P
 
 All the values produced should arrive on the consumer in uppercase.
 
+## Testing Kafka Streams Application
 
-Unit testing the `ChangeCaseProcessor` can be done using the `MockProcessorContext` from the `kafka-streams-test-utils` library.
+In this part we are using the `kafka-streams-test-utils` package to support testing a Kafka Streams application.
 
 Add the following dependencies to the Maven `pom.xml`
 
@@ -1512,6 +1513,135 @@ Add the following dependencies to the Maven `pom.xml`
             <scope>test</scope>
         </dependency>        
 ```
+
+### Testing the Topology of a Kafka Streams DSL
+
+Create a new package `com.trivadis.kafkaws.kstream.testing` add create the following topology in the Java class `KafkaStreamsRunnerTestingDSL`. It's a copy of the simple DSL implementation from the beginning, where we just transform the value part of the message to uppercase. 
+
+To make it testable, we refactored the creation of the topology into a separate method, we can use from a Unit test.
+
+```java
+package com.trivadis.kafkaws.kstream.testing;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.Printed;
+
+import java.util.Properties;
+
+public class KafkaStreamsRunnerTestingDSL {
+    public static Topology build() {
+        // the builder is used to construct the topology
+        StreamsBuilder builder = new StreamsBuilder();
+
+        // read from the source topic, "test-kstream-input-topic"
+        KStream<Void, String> stream = builder.stream("test-kstream-input-topic");
+
+        // transform the values to upper case
+        KStream<Void, String> upperStream = stream.mapValues(value -> value.toUpperCase());
+
+        // you can also print using the `print` operator
+        //upperStream.print(Printed.<Void, String>toSysOut().withLabel("upperValue"));
+
+        upperStream.to("test-kstream-output-topic");
+
+        return builder.build();
+    }
+
+    public static void main(String[] args) {
+
+        // set the required properties for running Kafka Streams
+        Properties config = new Properties();
+        config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev1");
+        config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dataplatform:9092");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Void().getClass());
+        config.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+
+        // build the topology and start streaming
+        KafkaStreams streams = new KafkaStreams(build(), config);
+        streams.start();
+
+        // close Kafka Streams when the JVM shuts down (e.g. SIGTERM)
+        Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
+    }
+}
+```
+
+With that in place, we can now test drive the topology using the `TopologyDriver` class. 
+
+Create the following Unit Test to send a message to the simulated input topic and check the message in the output topic
+
+```
+package com.trivadis.kafkaws.kstream.simple;
+
+import com.trivadis.kafkaws.kstream.testing.KafkaStreamsRunnerTestingDSL;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.*;
+import org.apache.kafka.streams.test.TestRecord;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Properties;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class KafkaStreamsRunnerTestingDSLTest {
+    private TopologyTestDriver testDriver;
+    private TestInputTopic<Void, String> inputTopic;
+    private TestOutputTopic<Void, String> outputTopic;
+
+    @BeforeEach
+    void setup() {
+        Topology topology = KafkaStreamsRunnerTestingDSL.build();
+
+        Properties props = new Properties();
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "test");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dummy:1234");
+        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.Void().getClass());
+        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+
+        testDriver = new TopologyTestDriver(topology, props);
+
+        inputTopic = testDriver.createInputTopic("test-kstream-input-topic", Serdes.Void().serializer(), Serdes.String().serializer());
+
+        outputTopic = testDriver.createOutputTopic("test-kstream-output-topic", Serdes.Void().deserializer(), Serdes.String().deserializer());
+    }
+
+    @AfterEach
+    void teardown() {
+        testDriver.close();
+    }
+
+    @Test
+    void testUpperCase() {
+        String value = "this is a test message";
+
+        inputTopic.pipeInput(value);
+
+        assertThat(outputTopic.isEmpty()).isFalse();
+
+        List<TestRecord<Void, String>> outRecords =
+                outputTopic.readRecordsToList();
+        assertThat(outRecords).hasSize(1);
+
+        String greeting = outRecords.get(0).getValue();
+        assertThat(greeting).isEqualTo("THIS IS A TEST MESSAGE");
+    }
+}
+```
+
+### Unit Testing a Processor implementation when using the Process API
+
+Unit testing the `ChangeCaseProcessor` can be done using the `MockProcessorContext` from the `kafka-streams-test-utils` library.
+
 
 And implement the following unit test
 
