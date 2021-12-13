@@ -14,8 +14,8 @@ public class KafkaProducerAvro {
 
     private final static String TOPIC = "test-java-avro-topic";
     private final static String BOOTSTRAP_SERVERS =
-            "3.65.177.58:9092, 3.65.177.58:9093, 3.65.177.58:9094";
-    private final static String SCHEMA_REGISTRY_URL = "http://3.65.177.58:8081";
+            "dataplatform:9092";
+    private final static String SCHEMA_REGISTRY_URL = "http://dataplatform:8081";
 
     private static Producer<Long, Notification> createProducer() {
         Properties props = new Properties();

@@ -1,0 +1,7 @@
+micronaut:
+  application:
+    name: micronautKafkaProducer
+kafka:
+  bootstrap:
+    servers: dataplatform:9092
+  enabled: true
